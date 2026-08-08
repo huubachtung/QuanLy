@@ -1,0 +1,51 @@
+name: app
+description: "Juss_TV - Ứng dụng quản lý nội bộ"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # Navigation
+  go_router: ^14.3.0
+
+  # State management
+  provider: ^6.1.2
+
+  # UI / Charts / Calendar
+  table_calendar: ^3.1.2
+  fl_chart: ^0.69.0
+  percent_indicator: ^4.2.3
+  shimmer: ^3.0.0
+  badges: ^3.1.2
+  flutter_svg: ^2.0.10+1
+
+  # Fonts & Images
+  google_fonts: ^6.2.1
+  cached_network_image: ^3.4.1
+
+  # Utils
+  intl: ^0.19.0
+  flutter_bloc: ^9.1.1
+  get_it: ^9.2.1
+  equatable: ^2.1.0
+  dio: ^5.11.0
+  dartz: ^0.10.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
