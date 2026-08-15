@@ -316,3 +316,209 @@
             - FCM (Android) / APNs (iOS) 
             (Khi Task được giao, Đơn phép / OT được duyệt)
 ```
+
+
+
+lib/
+├── main.dart                          # Entry point chính khởi chạy ứng dụng
+├── injection_container.dart           # Đăng ký Dependency Injection (GetIt) kết nối Service, Repository, UseCase và BLoC[cite: 1]
+│
+├── app/                               # Cấu hình cấp ứng dụng
+│   └── router.dart                    # Quản lý định tuyến màn hình (GoRouter / AutoRoute)[cite: 1]
+│
+├── core/                              # Thành phần hạ tầng dùng chung, KHÔNG chứa logic nghiệp vụ đặc thù[cite: 1]
+│   ├── constants/                     # Lưu các hằng số hệ thống (Base URL, Timeouts)[cite: 1]
+│   ├── errors/                        # Khai báo các lớp xử lý lỗi hệ thống[cite: 1]
+│   │   ├── exceptions.dart            # Exception từ Data Source (ServerException, CacheException)[cite: 1]
+│   │   └── failures.dart              # Failure trả về Domain/Presentation (ServerFailure, CacheFailure)[cite: 1]
+│   ├── mock/                          # Dữ liệu giả lập phục vụ testing hoặc demo[cite: 1]
+│   │   └── mock_data.dart             # Dữ liệu JSON/Object mẫu[cite: 1]
+│   ├── network/                       # Kiểm tra và quản lý kết nối mạng[cite: 1]
+│   │   └── network_info.dart          # Wrapper kiểm tra trạng thái kết nối Internet[cite: 1]
+│   ├── providers/                     # Quản lý State toàn cục cấp ứng dụng (không dùng BLoC)[cite: 1]
+│   │   └── theme_provider.dart        # Chuyển đổi giao diện Sáng/Tối (Dark/Light mode)[cite: 1]
+│   ├── usecases/                      # Interface UseCase chuẩn[cite: 1]
+│   │   └── usecase.dart               # Abstract class UseCase<Type, Params>[cite: 1]
+│   └── utils/                         # Công cụ tiện ích và cấu hình UI cơ bản[cite: 1]
+│       ├── app_colors.dart            # Bảng màu thiết kế hệ thống[cite: 1]
+│       └── theme.dart                 # Cấu hình ThemeData chung[cite: 1]
+│
+├── features/                          # Tất cả tính năng của ứng dụng được chia theo Feature-first[cite: 1]
+│   ├── assets/                        # Feature: Quản lý tài sản[cite: 1]
+│   │   ├── data/
+│   │   │   ├── datasources/
+│   │   │   │   └── asset_remote_data_source.dart  # Gọi API lấy/thao tác dữ liệu tài sản[cite: 1]
+│   │   │   ├── models/
+│   │   │   │   └── asset_model.dart               # Map dữ liệu JSON tài sản sang Dart Object (đã chuyển từ core)[cite: 1]
+│   │   │   └── repositories/
+│   │   │       └── asset_repository_impl.dart    # Implement AssetRepository, xử lý dữ liệu từ DataSource[cite: 1]
+│   │   ├── domain/
+│   │   │   ├── entities/
+│   │   │   │   └── asset_entity.dart              # Entity nghiệp vụ tài sản (không phụ thuộc package ngoài)
+│   │   │   ├── repositories/
+│   │   │   │   └── asset_repository.dart         # Interface Repository định nghĩa phương thức lấy dữ liệu[cite: 1]
+│   │   │   └── usecases/
+│   │   │       └── get_assets.dart               # UseCase lấy danh sách tài sản[cite: 1]
+│   │   └── presentation/
+│   │       ├── bloc/                          # Quản lý trạng thái BLoC của tài sản[cite: 1]
+│   │       │   ├── asset_bloc.dart            # Xử lý logic sự kiện và phát ra State[cite: 1]
+│   │       │   ├── asset_event.dart           # Khai báo sự kiện người dùng tác động[cite: 1]
+│   │       │   └── asset_state.dart           # Khai báo các trạng thái giao diện[cite: 1]
+│   │       └── pages/                         # Giao diện hiển thị[cite: 1]
+│   │           ├── asset_detail_page.dart     # Màn hình chi tiết tài sản[cite: 1]
+│   │           └── asset_page.dart            # Màn hình danh sách tài sản[cite: 1]
+│   │
+│   ├── attendance/                    # Feature: Quản lý điểm danh[cite: 1]
+│   │   ├── data/
+│   │   │   ├── datasources/
+│   │   │   │   └── attendance_remote_data_source.dart # Gọi API điểm danh[cite: 1]
+│   │   │   ├── models/
+│   │   │   │   └── attendance_model.dart              # Model điểm danh (đã chuyển từ core)[cite: 1]
+│   │   │   └── repositories/
+│   │   │       └── attendance_repository_impl.dart   # Implement AttendanceRepository[cite: 1]
+│   │   ├── domain/
+│   │   │   ├── entities/
+│   │   │   │   └── attendance_entity.dart             # Entity điểm danh
+│   │   │   ├── repositories/
+│   │   │   │   └── attendance_repository.dart        # Interface Repository điểm danh[cite: 1]
+│   │   │   └── usecases/
+│   │   │       └── get_attendance.dart               # UseCase lấy dữ liệu điểm danh[cite: 1]
+│   │   └── presentation/
+│   │       ├── bloc/                          # BLoC điểm danh[cite: 1]
+│   │       │   ├── attendance_bloc.dart[cite: 1]
+│   │       │   ├── attendance_event.dart[cite: 1]
+│   │       │   └── attendance_state.dart[cite: 1]
+│   │       └── pages/
+│   │           └── attendance_page.dart       # Màn hình danh sách/thực hiện điểm danh[cite: 1]
+│   │
+│   ├── auth/                          # Feature: Xác thực & Đăng nhập[cite: 1]
+│   │   ├── data/
+│   │   │   ├── datasources/
+│   │   │   │   └── auth_remote_data_source.dart       # API gửi thông tin đăng nhập[cite: 1]
+│   │   │   ├── models/
+│   │   │   │   └── user_model.dart                    # Model User ép kiểu từ JSON response API[cite: 1]
+│   │   │   └── repositories/
+│   │   │       └── auth_repository_impl.dart          # Implement AuthRepository[cite: 1]
+│   │   ├── domain/
+│   │   │   ├── entities/
+│   │   │   │   └── user_entity.dart                   # Entity người dùng dùng trong logic hệ thống[cite: 1]
+│   │   │   ├── repositories/
+│   │   │   │   └── auth_repository.dart               # Interface AuthRepository[cite: 1]
+│   │   │   └── usecases/
+│   │   │       └── login_usecase.dart                 # UseCase thực hiện đăng nhập[cite: 1]
+│   │   └── presentation/
+│   │       ├── bloc/                          # BLoC xác thực[cite: 1]
+│   │       │   ├── auth_bloc.dart[cite: 1]
+│   │       │   ├── auth_event.dart[cite: 1]
+│   │       │   └── auth_state.dart[cite: 1]
+│   │       └── pages/
+│   │           └── login_page.dart            # Màn hình đăng nhập[cite: 1]
+│   │
+│   ├── home/                          # Feature: Trang chủ[cite: 1]
+│   │   └── presentation/                  # Tầng giao diện trang chủ[cite: 1]
+│   │       ├── bloc/
+│   │       │   ├── home_bloc.dart[cite: 1]
+│   │       │   ├── home_event.dart[cite: 1]
+│   │       │   └── home_state.dart[cite: 1]
+│   │       └── pages/
+│   │           └── home_page.dart             # Màn hình trang chủ tổng quan[cite: 1]
+│   │
+│   ├── notifications/                 # Feature: Thông báo[cite: 1]
+│   │   ├── data/
+│   │   │   ├── datasources/
+│   │   │   │   └── notification_remote_data_source.dart # API lấy thông báo[cite: 1]
+│   │   │   ├── models/
+│   │   │   │   └── notification_model.dart             # Model thông báo (đã chuyển từ core)[cite: 1]
+│   │   │   └── repositories/
+│   │   │       └── notification_repository_impl.dart  # Implement NotificationRepository[cite: 1]
+│   │   ├── domain/
+│   │   │   ├── entities/
+│   │   │   │   └── notification_entity.dart            # Entity thông báo
+│   │   │   ├── repositories/
+│   │   │   │   └── notification_repository.dart       # Interface NotificationRepository[cite: 1]
+│   │   │   └── usecases/
+│   │   │       └── notification_usecases.dart         # UseCase xử lý tác vụ thông báo[cite: 1]
+│   │   └── presentation/
+│   │       ├── bloc/                          # BLoC thông báo[cite: 1]
+│   │       │   ├── notification_bloc.dart[cite: 1]
+│   │       │   ├── notification_event.dart[cite: 1]
+│   │       │   └── notification_state.dart[cite: 1]
+│   │       └── pages/
+│   │           └── notification_page.dart     # Màn hình danh sách thông báo[cite: 1]
+│   │
+│   ├── profile/                       # Feature: Thông tin cá nhân[cite: 1]
+│   │   └── presentation/                  # Màn hình profile người dùng[cite: 1]
+│   │       └── pages/
+│   │           └── profile_page.dart          # Màn hình xem và chỉnh sửa thông tin cá nhân[cite: 1]
+│   │
+│   ├── projects/                      # Feature: Quản lý dự án & công việc[cite: 1]
+│   │   ├── data/
+│   │   │   ├── datasources/
+│   │   │   │   └── project_remote_data_source.dart    # API liên quan dự án và task[cite: 1]
+│   │   │   ├── models/
+│   │   │   │   └── project_model.dart                 # Model dự án (đã chuyển từ core)[cite: 1]
+│   │   │   └── repositories/
+│   │   │       └── project_repository_impl.dart      # Implement ProjectRepository[cite: 1]
+│   │   ├── domain/
+│   │   │   ├── entities/
+│   │   │   │   └── project_entity.dart                # Entity dự án
+│   │   │   ├── repositories/
+│   │   │   │   └── project_repository.dart           # Interface ProjectRepository[cite: 1]
+│   │   │   └── usecases/
+│   │   │       ├── get_projects_data.dart             # UseCase lấy dữ liệu dự án[cite: 1]
+│   │   │       └── update_task_progress.dart          # UseCase cập nhật tiến độ công việc[cite: 1]
+│   │   └── presentation/
+│   │       ├── bloc/                          # BLoC dự án[cite: 1]
+│   │       │   ├── projects_bloc.dart[cite: 1]
+│   │       │   ├── projects_event.dart[cite: 1]
+│   │       │   └── projects_state.dart[cite: 1]
+│   │       └── pages/
+│   │           ├── project_calendar_page.dart # Lịch biểu dự án[cite: 1]
+│   │           ├── project_detail_page.dart   # Chi tiết dự án[cite: 1]
+│   │           ├── project_list_page.dart     # Danh sách dự án[cite: 1]
+│   │           ├── task_detail_page.dart      # Chi tiết công việc[cite: 1]
+│   │           ├── task_list_page.dart        # Danh sách công việc[cite: 1]
+│   │           └── timeline_page.dart         # Màn hình timeline dự án[cite: 1]
+│   │
+│   └── requests/                      # Feature: Yêu cầu (Nghỉ phép & Làm thêm giờ)[cite: 1]
+│       ├── data/
+│       │   ├── datasources/
+│       │   │   ├── leave_remote_data_source.dart    # API nghỉ phép[cite: 1]
+│       │   │   └── overtime_remote_data_source.dart # API làm thêm giờ (OT)[cite: 1]
+│       │   ├── models/
+│       │   │   ├── leave_request_model.dart         # Model nghỉ phép (đã chuyển từ core)[cite: 1]
+│       │   │   └── overtime_model.dart              # Model làm thêm giờ (đã chuyển từ core)[cite: 1]
+│       │   └── repositories/
+│       │       ├── leave_repository_impl.dart       # Implement LeaveRepository[cite: 1]
+│       │       └── overtime_repository_impl.dart    # Implement OvertimeRepository[cite: 1]
+│       ├── domain/
+│       │   ├── entities/
+│       │   │   ├── leave_request_entity.dart        # Entity nghỉ phép
+│       │   │   └── overtime_entity.dart             # Entity làm thêm giờ
+│       │   ├── repositories/
+│       │   │   ├── leave_repository.dart            # Interface LeaveRepository[cite: 1]
+│       │   │   └── overtime_repository.dart         # Interface OvertimeRepository[cite: 1]
+│       │   └── usecases/
+│       │       ├── leave_usecases.dart              # UseCases nghỉ phép[cite: 1]
+│       │       └── overtime_usecases.dart           # UseCases làm thêm giờ[cite: 1]
+│       └── presentation/
+│           ├── bloc/
+│           │   ├── leave/                       # BLoC quản lý đơn nghỉ phép[cite: 1]
+│           │   │   ├── leave_bloc.dart[cite: 1]
+│           │   │   ├── leave_event.dart[cite: 1]
+│           │   │   └── leave_state.dart[cite: 1]
+│           │   └── overtime/                    # BLoC quản lý đơn làm thêm giờ[cite: 1]
+│           │       ├── overtime_bloc.dart[cite: 1]
+│           │       ├── overtime_event.dart[cite: 1]
+│           │       └── overtime_state.dart[cite: 1]
+│           └── pages/
+│               ├── leave_request_page.dart      # Màn hình tạo đơn xin nghỉ phép[cite: 1]
+│               ├── overtime_page.dart           # Màn hình tạo đơn xin OT[cite: 1]
+│               └── request_list_page.dart       # Màn hình tổng hợp danh sách yêu cầu[cite: 1]
+│
+└── shared/                            # Chứa các thành phần UI dùng chung giữa nhiều Feature[cite: 1]
+    └── widgets/                       # Widget tái sử dụng[cite: 1]
+        ├── empty_state.dart           # Widget hiển thị giao diện khi không có dữ liệu[cite: 1]
+        ├── loading_shimmer.dart       # Widget tạo hiệu ứng skeleton loading[cite: 1]
+        ├── month_picker.dart          # Widget chọn tháng/năm[cite: 1]
+        └── status_badge.dart          # Widget nhãn trạng thái (Ví dụ: Chờ duyệt, Đã duyệt)[cite: 1]

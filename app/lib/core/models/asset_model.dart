@@ -33,6 +33,43 @@ class AssetModel {
     this.images = const [],
     this.assignedAt,
   });
+
+  factory AssetModel.fromJson(Map<String, dynamic> json) {
+    return AssetModel(
+      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+      assetCode: json['assetCode']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      category: json['category']?.toString() ?? '',
+      brand: json['brand']?.toString() ?? '',
+      model: json['model']?.toString() ?? '',
+      serialNumber: json['serialNumber']?.toString() ?? '',
+      purchaseDate: json['purchaseDate'] != null ? DateTime.tryParse(json['purchaseDate'].toString())?.toLocal() : null,
+      purchasePrice: (json['purchasePrice'] ?? 0).toDouble(),
+      warrantyExpiry: json['warrantyExpiry'] != null ? DateTime.tryParse(json['warrantyExpiry'].toString())?.toLocal() : null,
+      status: _parseAssetStatus(json['status']?.toString()),
+      location: json['location']?.toString() ?? '',
+      notes: json['notes']?.toString() ?? '',
+      images: (json['images'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      assignedAt: json['assignedAt'] != null ? DateTime.tryParse(json['assignedAt'].toString())?.toLocal() : null,
+    );
+  }
+}
+
+AssetStatus _parseAssetStatus(String? status) {
+  switch (status?.toUpperCase()) {
+    case 'IN_USE':
+    case 'IN USE':
+      return AssetStatus.inUse;
+    case 'MAINTENANCE':
+      return AssetStatus.maintenance;
+    case 'BROKEN':
+      return AssetStatus.broken;
+    case 'DISPOSED':
+      return AssetStatus.disposed;
+    case 'AVAILABLE':
+    default:
+      return AssetStatus.available;
+  }
 }
 
 enum AssetStatus { available, inUse, maintenance, broken, disposed }

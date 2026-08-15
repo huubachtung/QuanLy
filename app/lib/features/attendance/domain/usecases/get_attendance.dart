@@ -5,12 +5,12 @@ import '../../../../core/models/attendance_model.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../repositories/attendance_repository.dart';
 
-class GetAttendanceUseCase implements UseCase<List<AttendanceModel>, GetAttendanceParams> {
+class GetAttendanceUseCase implements UseCase<AttendanceResponseModel, GetAttendanceParams> {
   final AttendanceRepository repository;
   GetAttendanceUseCase(this.repository);
 
   @override
-  Future<Either<Failure, List<AttendanceModel>>> call(GetAttendanceParams params) async {
+  Future<Either<Failure, AttendanceResponseModel>> call(GetAttendanceParams params) async {
     return await repository.getAttendanceData(params.month, params.year);
   }
 }

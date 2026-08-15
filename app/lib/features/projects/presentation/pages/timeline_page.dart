@@ -6,6 +6,9 @@ import '../../../../core/models/project_model.dart';
 import '../bloc/projects_bloc.dart';
 import '../bloc/projects_state.dart';
 
+import 'package:app/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:app/features/auth/presentation/bloc/auth_state.dart';
+
 class TimelinePage extends StatefulWidget {
   const TimelinePage({super.key});
   @override State<TimelinePage> createState() => _TimelinePageState();
@@ -31,6 +34,9 @@ class _TimelinePageState extends State<TimelinePage> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final authState = context.watch<AuthBloc>().state;
+    final currentUserId = authState is AuthAuthenticated ? authState.user.id : '';
+
     return Scaffold(
       appBar: AppBar(title: const Text('Tiến độ công việc (Timeline)')),
       body: BlocBuilder<ProjectsBloc, ProjectsState>(
@@ -38,7 +44,7 @@ class _TimelinePageState extends State<TimelinePage> {
           if (state is ProjectsInitial || state is ProjectsLoading) {
             return const Center(child: CircularProgressIndicator());
           }
-          final tasks = state is ProjectsLoaded ? state.myTasks : <TaskModel>[];
+          final tasks = state is ProjectsLoaded ? state.myTasks(currentUserId) : <TaskModel>[];
           
           return Column(
             children: [

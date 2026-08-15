@@ -5,7 +5,10 @@ import 'package:percent_indicator/percent_indicator.dart';
 import 'package:app/core/utils/app_colors.dart';
 import '../../../../core/models/project_model.dart';
 import '../bloc/projects_bloc.dart';
+import '../bloc/projects_event.dart';
 import '../bloc/projects_state.dart';
+import 'package:app/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:app/features/auth/presentation/bloc/auth_state.dart';
 import '../../../../shared/widgets/status_badge.dart';
 import '../../../../shared/widgets/loading_shimmer.dart';
 import '../../../../shared/widgets/empty_state.dart';
@@ -18,11 +21,19 @@ class ProjectListPage extends StatefulWidget {
 class _ProjectListPageState extends State<ProjectListPage> with SingleTickerProviderStateMixin {
   late TabController _tabCtrl;
   final _tabs = ['Tất cả', 'Đang làm', 'Hoàn thành', 'Trễ hạn', 'Chưa làm'];
+  bool _onlyMyProjects = true;
 
   @override
   void initState() {
     super.initState();
     _tabCtrl = TabController(length: _tabs.length, vsync: this);
+    // Load data khi trang mở (sau khi đã đăng nhập)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final state = context.read<ProjectsBloc>().state;
+      if (state is ProjectsInitial) {
+        context.read<ProjectsBloc>().add(LoadProjectsData());
+      }
+    });
   }
 
   @override
@@ -40,25 +51,31 @@ class _ProjectListPageState extends State<ProjectListPage> with SingleTickerProv
 
   @override
   Widget build(BuildContext context) {
+    final authState = context.watch<AuthBloc>().state;
+    final currentUserId = authState is AuthAuthenticated ? authState.user.id : '';
+
     return BlocBuilder<ProjectsBloc, ProjectsState>(
       builder: (context, state) {
         final isLoading = state is ProjectsInitial || state is ProjectsLoading;
-        List<ProjectModel> allProjects = [];
+        List<ProjectModel> displayProjects = [];
         int inProg = 0, todo = 0, done = 0;
         
         if (state is ProjectsLoaded) {
-          allProjects = state.projects;
-          final myTasks = state.myTasks;
-          inProg = myTasks.where((t) => t.status == TaskStatus.inProgress).length;
-          todo = myTasks.where((t) => t.status == TaskStatus.todo).length;
-          done = myTasks.where((t) => t.status == TaskStatus.done).length;
+          final myProj = state.myProjects(currentUserId);
+          displayProjects = _onlyMyProjects ? myProj : state.projects;
+          inProg = displayProjects.where((p) => p.status == ProjectStatus.inProgress).length;
+          todo = displayProjects.where((p) => p.status == ProjectStatus.notStarted).length;
+          done = displayProjects.where((p) => p.status == ProjectStatus.finished).length;
         }
 
         return Column(children: [
           // Navigation shortcuts
           _buildNavShortcuts(context),
-          // Task quick stats
-          if (!isLoading) _buildTaskStats(context, inProg, todo, done),
+          // Project stats card
+          if (!isLoading) _buildProjectStats(context, inProg, todo, done),
+          // Filter scope toggle (Của tôi / Tất cả)
+          if (!isLoading && state is ProjectsLoaded)
+            _buildScopeSelector(context, state.myProjects(currentUserId).length, state.projects.length),
           // Tab bar
           Container(
             width: double.infinity,
@@ -79,9 +96,14 @@ class _ProjectListPageState extends State<ProjectListPage> with SingleTickerProv
               : AnimatedBuilder(
                   animation: _tabCtrl,
                   builder: (_, __) {
-                    final list = _filtered(allProjects, _tabCtrl.index);
+                    final list = _filtered(displayProjects, _tabCtrl.index);
                     if (list.isEmpty) {
-                      return const EmptyState(icon: Icons.folder_off_rounded, title: 'Không có dự án nào');
+                      return EmptyState(
+                        icon: Icons.folder_off_rounded,
+                        title: _onlyMyProjects
+                          ? 'Bạn chưa tham gia dự án nào trong mục này'
+                          : 'Không có dự án nào',
+                      );
                     }
                     return ListView.builder(
                       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -100,6 +122,74 @@ class _ProjectListPageState extends State<ProjectListPage> with SingleTickerProv
     );
   }
 
+  Widget _buildScopeSelector(BuildContext context, int myCount, int totalCount) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+      child: Row(children: [
+        Expanded(
+          child: GestureDetector(
+            onTap: () => setState(() => _onlyMyProjects = true),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                color: _onlyMyProjects
+                    ? AppColors.primaryBlue
+                    : (isDark ? AppColors.darkCard : AppColors.lightCard),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: _onlyMyProjects
+                      ? AppColors.primaryBlue
+                      : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  'Của tôi ($myCount)',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: _onlyMyProjects ? Colors.white : (isDark ? Colors.white70 : AppColors.darkBg),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: GestureDetector(
+            onTap: () => setState(() => _onlyMyProjects = false),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                color: !_onlyMyProjects
+                    ? AppColors.primaryBlue
+                    : (isDark ? AppColors.darkCard : AppColors.lightCard),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: !_onlyMyProjects
+                      ? AppColors.primaryBlue
+                      : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  'Tất cả dự án ($totalCount)',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: !_onlyMyProjects ? Colors.white : (isDark ? Colors.white70 : AppColors.darkBg),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+
   Widget _buildNavShortcuts(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
@@ -112,7 +202,7 @@ class _ProjectListPageState extends State<ProjectListPage> with SingleTickerProv
     );
   }
 
-  Widget _buildTaskStats(BuildContext context, int inProg, int todo, int done) {
+  Widget _buildProjectStats(BuildContext context, int inProg, int todo, int done) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       padding: const EdgeInsets.all(16),

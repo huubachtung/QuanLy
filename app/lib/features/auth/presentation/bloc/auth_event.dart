@@ -18,3 +18,7 @@ class LoginRequested extends AuthEvent {
 }
 
 class LogoutRequested extends AuthEvent {}
+
+class AutoLoginRequested extends AuthEvent {}
+
+class TokenExpired extends AuthEvent {}

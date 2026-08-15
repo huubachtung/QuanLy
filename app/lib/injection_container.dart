@@ -1,9 +1,14 @@
 import 'package:get_it/get_it.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'core/network/network_info.dart';
+import 'core/network/token_storage.dart';
+import 'core/network/api_client.dart';
 import 'features/auth/data/datasources/auth_remote_data_source.dart';
 import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/auth/domain/repositories/auth_repository.dart';
 import 'features/auth/domain/usecases/login_usecase.dart';
+import 'features/auth/domain/usecases/auto_login_usecase.dart';
+import 'features/auth/domain/usecases/logout_usecase.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/home/presentation/bloc/home_bloc.dart';
 import 'features/projects/data/datasources/project_remote_data_source.dart';
@@ -42,14 +47,23 @@ final sl = GetIt.instance; // sl = Service Locator
 
 Future<void> init() async {
   // --- Core ---
+  sl.registerLazySingleton(() => const FlutterSecureStorage());
+  sl.registerLazySingleton(() => TokenStorage(sl()));
+  sl.registerLazySingleton(() => ApiClient(sl()));
   sl.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl());
 
   // --- Features: Auth ---
   // Bloc
-  sl.registerFactory(() => AuthBloc(loginUseCase: sl()));
+  sl.registerFactory(() => AuthBloc(
+        loginUseCase: sl(),
+        autoLoginUseCase: sl(),
+        logoutUseCase: sl(),
+      ));
 
   // Use cases
   sl.registerLazySingleton(() => LoginUseCase(sl()));
+  sl.registerLazySingleton(() => AutoLoginUseCase(sl()));
+  sl.registerLazySingleton(() => LogoutUseCase(sl()));
 
   // Repository
   sl.registerLazySingleton<AuthRepository>(
@@ -61,7 +75,7 @@ Future<void> init() async {
 
   // Data sources
   sl.registerLazySingleton<AuthRemoteDataSource>(
-    () => AuthRemoteDataSourceImpl(),
+    () => AuthRemoteDataSourceImpl(apiClient: sl(), tokenStorage: sl()),
   );
 
   // --- Features: Home ---
@@ -70,9 +84,9 @@ Future<void> init() async {
   // --- Features: Projects ---
   // Bloc
   sl.registerFactory(() => ProjectsBloc(
-    getProjectsData: sl(),
-    updateTaskProgress: sl(),
-  ));
+        getProjectsData: sl(),
+        updateTaskProgress: sl(),
+      ));
 
   // Use cases
   sl.registerLazySingleton(() => GetProjectsDataUseCase(sl()));
@@ -80,12 +94,12 @@ Future<void> init() async {
 
   // Repository
   sl.registerLazySingleton<ProjectRepository>(
-    () => ProjectRepositoryImpl(remoteDataSource: sl()),
+    () => ProjectRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
   );
 
   // Data sources
   sl.registerLazySingleton<ProjectRemoteDataSource>(
-    () => ProjectRemoteDataSourceImpl(),
+    () => ProjectRemoteDataSourceImpl(apiClient: sl()),
   );
 
   // --- Features: Attendance ---
@@ -97,18 +111,25 @@ Future<void> init() async {
 
   // Repository
   sl.registerLazySingleton<AttendanceRepository>(
-    () => AttendanceRepositoryImpl(remoteDataSource: sl()),
+    () => AttendanceRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
   );
 
   // Data sources
   sl.registerLazySingleton<AttendanceRemoteDataSource>(
-    () => AttendanceRemoteDataSourceImpl(),
+    () => AttendanceRemoteDataSourceImpl(apiClient: sl()),
   );
 
   // --- Features: Requests (Leave & Overtime) ---
   // Blocs
-  sl.registerFactory(() => LeaveBloc(getRequests: sl(), createReq: sl(), cancelReq: sl()));
-  sl.registerFactory(() => OvertimeBloc(getOvertime: sl(), updateRecord: sl(), markNoOt: sl()));
+  sl.registerFactory(
+      () => LeaveBloc(getRequests: sl(), createReq: sl(), cancelReq: sl()));
+  sl.registerFactory(() => OvertimeBloc(
+        getOvertime: sl(),
+        updateRecord: sl(),
+        markNoOt: sl(),
+        submitBulk: sl(),
+        deleteRecord: sl(),
+      ));
 
   // Use cases
   sl.registerLazySingleton(() => GetLeaveRequestsUseCase(sl()));
@@ -117,18 +138,25 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetOvertimeDataUseCase(sl()));
   sl.registerLazySingleton(() => UpdateOvertimeRecordUseCase(sl()));
   sl.registerLazySingleton(() => MarkNoOtUseCase(sl()));
+  sl.registerLazySingleton(() => SubmitBulkOvertimeUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteOvertimeRecordUseCase(sl()));
 
   // Repositories
-  sl.registerLazySingleton<LeaveRepository>(() => LeaveRepositoryImpl(remoteDataSource: sl()));
-  sl.registerLazySingleton<OvertimeRepository>(() => OvertimeRepositoryImpl(remoteDataSource: sl()));
+  sl.registerLazySingleton<LeaveRepository>(
+      () => LeaveRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()));
+  sl.registerLazySingleton<OvertimeRepository>(
+      () => OvertimeRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()));
 
   // Data sources
-  sl.registerLazySingleton<LeaveRemoteDataSource>(() => LeaveRemoteDataSourceImpl());
-  sl.registerLazySingleton<OvertimeRemoteDataSource>(() => OvertimeRemoteDataSourceImpl());
+  sl.registerLazySingleton<LeaveRemoteDataSource>(
+      () => LeaveRemoteDataSourceImpl(apiClient: sl()));
+  sl.registerLazySingleton<OvertimeRemoteDataSource>(
+      () => OvertimeRemoteDataSourceImpl(apiClient: sl()));
 
   // --- Features: Notifications ---
   // Bloc
-  sl.registerFactory(() => NotificationBloc(getNotifications: sl(), markRead: sl(), markAllRead: sl()));
+  sl.registerFactory(() => NotificationBloc(
+      getNotifications: sl(), markRead: sl(), markAllRead: sl()));
 
   // Use cases
   sl.registerLazySingleton(() => GetNotificationsUseCase(sl()));
@@ -136,10 +164,12 @@ Future<void> init() async {
   sl.registerLazySingleton(() => MarkAllNotificationsReadUseCase(sl()));
 
   // Repository
-  sl.registerLazySingleton<NotificationRepository>(() => NotificationRepositoryImpl(remoteDataSource: sl()));
+  sl.registerLazySingleton<NotificationRepository>(
+      () => NotificationRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()));
 
   // Data sources
-  sl.registerLazySingleton<NotificationRemoteDataSource>(() => NotificationRemoteDataSourceImpl());
+  sl.registerLazySingleton<NotificationRemoteDataSource>(
+      () => NotificationRemoteDataSourceImpl(apiClient: sl()));
 
   // --- Features: Assets ---
   // Bloc
@@ -149,8 +179,10 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetAssetsUseCase(sl()));
 
   // Repository
-  sl.registerLazySingleton<AssetRepository>(() => AssetRepositoryImpl(remoteDataSource: sl()));
+  sl.registerLazySingleton<AssetRepository>(
+      () => AssetRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()));
 
   // Data sources
-  sl.registerLazySingleton<AssetRemoteDataSource>(() => AssetRemoteDataSourceImpl());
+  sl.registerLazySingleton<AssetRemoteDataSource>(
+      () => AssetRemoteDataSourceImpl(apiClient: sl()));
 }

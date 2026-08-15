@@ -222,25 +222,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                               },
                             ),
                           ),
-                          const SizedBox(height: 32),
-                          // Demo hint
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: AppColors.gold.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.info_outline_rounded, color: AppColors.gold, size: 16),
-                                const SizedBox(width: 8),
-                                Text('Demo: Nhập bất kỳ tài khoản hợp lệ',
-                                  style: TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w500)),
-                              ],
-                            ),
-                          ),
+                          // Demo hint removed
                         ],
                       ),
                     ),

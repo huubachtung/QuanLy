@@ -46,18 +46,27 @@ class ProfilePage extends StatelessWidget {
                     tag: 'user_avatar',
                     child: CircleAvatar(
                       radius: 32, backgroundColor: Colors.white.withValues(alpha: 0.2),
-                      child: Text(user.displayName.substring(0, 1),
-                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: Colors.white)),
+                      child: Text(
+                        user.displayName.trim().isNotEmpty
+                            ? user.displayName.trim().substring(0, 1).toUpperCase()
+                            : 'NV',
+                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: Colors.white),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(user.displayName, style: const TextStyle(
                       fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white)),
-                    const SizedBox(height: 4),
-                    Text(user.employeeCode ?? '', style: const TextStyle(color: Colors.white70, fontSize: 13)),
-                    const SizedBox(height: 4),
-                    Text(user.department ?? '', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                    if (user.employeeCode != null && user.employeeCode!.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text('Mã NV: ${user.employeeCode}',
+                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                    ],
+                    if (user.department != null && user.department!.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(user.department!, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -72,7 +81,7 @@ class ProfilePage extends StatelessWidget {
               const SizedBox(height: 16),
               // Quick stats
               Row(children: [
-                _QuickStat('Phép còn lại', '${user.leaveBalances.firstWhere((lb) => lb.leaveType == "ANNUAL_LEAVE", orElse: () => const LeaveBalance(leaveType: '', label: '', totalDays: 12, usedDays: 0)).remainingDays.toStringAsFixed(1)} ngày', AppColors.success, isDark),
+                _QuickStat('Phép còn lại', '${user.leaveBalances.firstWhere((lb) => lb.leaveType == "ANNUAL_LEAVE", orElse: () => const LeaveBalanceModel(leaveType: '', label: '', totalDays: 12, usedDays: 0)).remainingDays.toStringAsFixed(1)} ngày', AppColors.success, isDark),
                 const SizedBox(width: 8),
                 _QuickStat('Ngày vào làm', user.hiredDate != null ? fmt.format(user.hiredDate!) : 'N/A', AppColors.info, isDark),
                 const SizedBox(width: 8),
@@ -86,8 +95,9 @@ class ProfilePage extends StatelessWidget {
               ], isDark, context),
               const SizedBox(height: 12),
               _InfoSection('Thông tin công việc', [
+                _InfoRow(Icons.badge_outlined, 'Mã nhân viên', user.employeeCode?.isNotEmpty == true ? user.employeeCode! : 'N/A', context),
+                _InfoRow(Icons.business_rounded, 'Phòng ban', user.department?.isNotEmpty == true ? user.department! : 'N/A', context),
                 _InfoRow(Icons.work_outline_rounded, 'Chức vụ', _roleLabel(user.role), context),
-                _InfoRow(Icons.business_rounded, 'Phòng ban', user.department ?? 'N/A', context),
                 _InfoRow(Icons.access_time_rounded, 'Giờ làm việc',
                   '${user.workStartTime} - ${user.workEndTime}', context),
               ], isDark, context),
@@ -124,11 +134,13 @@ class ProfilePage extends StatelessWidget {
   }
 
   String _employeeTypeLabel(String type) {
-    switch (type) {
+    switch (type.toUpperCase()) {
       case 'FULL_TIME': return 'Toàn thời gian';
       case 'PART_TIME': return 'Bán thời gian';
       case 'INTERN': return 'Thực tập';
       case 'COLLABORATOR': return 'Cộng tác viên';
+      case 'TRY_JOB': return 'Thử việc';
+      case 'OFFICIAL': return 'Chính thức';
       default: return type;
     }
   }

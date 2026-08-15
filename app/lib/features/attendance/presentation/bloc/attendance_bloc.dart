@@ -24,7 +24,7 @@ class AttendanceBloc extends Bloc<AttendanceEvent, AttendanceState> {
     failureOrData.fold(
       (failure) => emit(AttendanceError(failure.message)),
       (data) => emit(AttendanceLoaded(
-        records: data,
+        response: data,
         selectedMonth: event.month,
         selectedYear: event.year,
       )),

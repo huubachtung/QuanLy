@@ -1,5 +1,4 @@
 import 'package:dartz/dartz.dart';
-import '../../../../core/errors/exceptions.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/network/network_info.dart';
 import '../../domain/entities/user_entity.dart';
@@ -21,8 +20,8 @@ class AuthRepositoryImpl implements AuthRepository {
       try {
         final userModel = await remoteDataSource.login(username, password);
         return Right(userModel);
-      } on ServerException {
-        return const Left(ServerFailure('Tên đăng nhập hoặc mật khẩu không đúng'));
+      } on Exception catch (e) {
+        return Left(Failure.fromException(e));
       }
     } else {
       return const Left(NetworkFailure());
@@ -31,7 +30,29 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Either<Failure, void>> logout() async {
-    // Implement logout (clear cache, etc.)
-    return const Right(null);
+    try {
+      await remoteDataSource.logout();
+      return const Right(null);
+    } catch (e) {
+      return const Right(null); // Ignore logout errors
+    }
+  }
+
+  @override
+  Future<Either<Failure, UserEntity>> autoLogin() async {
+    if (await networkInfo.isConnected) {
+      try {
+        final userModel = await remoteDataSource.autoLogin();
+        if (userModel != null) {
+          return Right(userModel);
+        } else {
+          return const Left(UnauthorizedFailure());
+        }
+      } on Exception catch (e) {
+        return Left(Failure.fromException(e));
+      }
+    } else {
+      return const Left(NetworkFailure());
+    }
   }
 }

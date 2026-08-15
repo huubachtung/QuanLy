@@ -6,22 +6,43 @@ import '../../../../core/models/attendance_model.dart';
 import '../bloc/attendance_bloc.dart';
 import '../bloc/attendance_event.dart';
 import '../bloc/attendance_state.dart';
+import 'package:app/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:app/features/auth/presentation/bloc/auth_state.dart';
 import '../../../../shared/widgets/month_picker.dart';
 import '../../../../shared/widgets/status_badge.dart';
 import '../../../../shared/widgets/loading_shimmer.dart';
 
 class AttendancePage extends StatefulWidget {
   const AttendancePage({super.key});
-  @override State<AttendancePage> createState() => _AttendancePageState();
+  @override
+  State<AttendancePage> createState() => _AttendancePageState();
 }
 
 class _AttendancePageState extends State<AttendancePage> {
+  bool _isExpanded = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final bloc = context.read<AttendanceBloc>();
+      if (bloc.state is AttendanceInitial) {
+        final now = DateTime.now();
+        bloc.add(LoadAttendanceData(month: now.month, year: now.year));
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final authState = context.watch<AuthBloc>().state;
+    final user = authState is AuthAuthenticated ? authState.user : null;
+
     return BlocBuilder<AttendanceBloc, AttendanceState>(
       builder: (context, state) {
-        final isLoading = state is AttendanceInitial || state is AttendanceLoading;
+        final isLoading =
+            state is AttendanceInitial || state is AttendanceLoading;
         final currentMonth = context.read<AttendanceBloc>().currentMonth;
         final currentYear = context.read<AttendanceBloc>().currentYear;
 
@@ -33,209 +54,855 @@ class _AttendancePageState extends State<AttendancePage> {
           records = state.records;
         }
 
-        return Column(children: [
-          // Month picker
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Row(children: [
-              MonthYearPicker(
-                month: currentMonth, year: currentYear,
-                onChanged: (mv) {
-                  context.read<AttendanceBloc>().add(LoadAttendanceData(month: mv.$1, year: mv.$2));
-                },
+        return Column(
+          children: [
+            // Month Picker Bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Row(
+                children: [
+                  MonthYearPicker(
+                    month: currentMonth,
+                    year: currentYear,
+                    onChanged: (mv) {
+                      context.read<AttendanceBloc>().add(
+                            LoadAttendanceData(month: mv.$1, year: mv.$2),
+                          );
+                    },
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.fingerprint_rounded,
+                            size: 18,
+                            color: Theme.of(context).colorScheme.primary),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Tháng $currentMonth/$currentYear',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const Spacer(),
-              Icon(Icons.fingerprint_rounded, color: Theme.of(context).colorScheme.primary),
-            ]),
-          ),
-          if (isLoading || summary == null)
-            Expanded(child: ListView.builder(itemCount: 8, itemBuilder: (_, __) => const CardShimmer()))
-          else ...[
-            // Summary card
-            _SummaryCard(summary: summary, isDark: isDark),
-            const SizedBox(height: 8),
-            // Header row
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkCardElevated : AppColors.lightCardElevated,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Row(children: [
-                _HdrCell('Ngày', flex: 2), _HdrCell('Vào', flex: 2),
-                _HdrCell('Ra', flex: 2), _HdrCell('HC', flex: 1),
-                _HdrCell('OT', flex: 1), _HdrCell('Công', flex: 1),
-              ]),
             ),
-            const SizedBox(height: 4),
-            // Records
-            Expanded(child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              itemCount: records.length,
-              itemBuilder: (_, i) => _AttRow(record: records[i], isDark: isDark),
-            )),
+
+            if (state is AttendanceError)
+              Expanded(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline_rounded,
+                            size: 48, color: AppColors.error),
+                        const SizedBox(height: 12),
+                        Text(state.message,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodyMedium),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            context.read<AttendanceBloc>().add(
+                                  LoadAttendanceData(
+                                      month: currentMonth, year: currentYear),
+                                );
+                          },
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text('Thử lại'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+            else if (isLoading || summary == null)
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: 4,
+                  itemBuilder: (_, __) => const CardShimmer(),
+                ),
+              )
+            else
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 1. DỮ LIỆU CHUNG THEO THÁNG (Employee Summary Card)
+                      _EmployeeMonthlySummaryCard(
+                        user: user,
+                        summary: summary,
+                        isDark: isDark,
+                        isExpanded: _isExpanded,
+                        onToggleExpand: () =>
+                            setState(() => _isExpanded = !_isExpanded),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // 2. BẢNG CHI TIẾT LỊCH SỬ CHẤM CÔNG THEO NGÀY
+                      if (_isExpanded) ...[
+                        _DetailedAttendanceSection(
+                          records: records,
+                          currentMonth: currentMonth,
+                          currentYear: currentYear,
+                          isDark: isDark,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
           ],
-        ]);
+        );
       },
     );
   }
 }
 
-class _SummaryCard extends StatelessWidget {
+/// ── Card Thống Kê Tổng Quan Theo Tháng Của Nhân Viên ──────────────────────────
+class _EmployeeMonthlySummaryCard extends StatelessWidget {
+  final dynamic user;
   final AttendanceSummary summary;
   final bool isDark;
-  const _SummaryCard({required this.summary, required this.isDark});
+  final bool isExpanded;
+  final VoidCallback onToggleExpand;
 
-  @override Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkCard : AppColors.lightCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-      ),
-      child: Column(children: [
-        Row(children: [
-          _SumItem('Ngày đi làm', '${summary.workDays}', AppColors.info),
-          _SumItem('Tổng công', summary.totalCong.toStringAsFixed(1), AppColors.success),
-          _SumItem('Giờ HC', summary.totalNormalHours.toStringAsFixed(1), AppColors.primaryLight),
-        ]),
-        const Divider(height: 16),
-        Row(children: [
-          _SumItem('OT duyệt', '${summary.approvedOtHours.toStringAsFixed(1)}h', AppColors.success),
-          _SumItem('OT chờ', '${summary.pendingOtHours.toStringAsFixed(1)}h', AppColors.warning),
-          _SumItem('OT từ chối', '${summary.rejectedOtHours.toStringAsFixed(1)}h', AppColors.error),
-        ]),
-      ]),
-    );
-  }
-}
-
-class _SumItem extends StatelessWidget {
-  final String label, value;
-  final Color color;
-  const _SumItem(this.label, this.value, this.color);
-  @override Widget build(BuildContext ctx) => Expanded(child: Column(children: [
-    Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: color)),
-    const SizedBox(height: 2),
-    Text(label, style: TextStyle(fontSize: 10, color: Theme.of(ctx).textTheme.bodySmall?.color), textAlign: TextAlign.center),
-  ]));
-}
-
-class _HdrCell extends StatelessWidget {
-  final String text;
-  final int flex;
-  const _HdrCell(this.text, {required this.flex});
-  @override Widget build(BuildContext ctx) => Expanded(flex: flex,
-    child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700), textAlign: TextAlign.center));
-}
-
-class _AttRow extends StatelessWidget {
-  final AttendanceModel record;
-  final bool isDark;
-  const _AttRow({required this.record, required this.isDark});
+  const _EmployeeMonthlySummaryCard({
+    required this.user,
+    required this.summary,
+    required this.isDark,
+    required this.isExpanded,
+    required this.onToggleExpand,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final isOff = record.status == AttendanceStatus.off;
-    if (isOff) return const SizedBox.shrink();
+    final String displayName = user?.displayName ?? 'Nhân viên';
+    final String email = user?.email ?? user?.username ?? '';
+    final String employeeCode = user?.employeeCode?.isNotEmpty == true
+        ? user!.employeeCode!
+        : '---';
 
-    final date = DateTime.parse(record.date);
-    final weekday = ['', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'][date.weekday];
-    final checkIn = record.checkIn != null ? DateFormat('HH:mm').format(record.checkIn!) : '--:--';
-    final checkOut = record.checkOut != null ? DateFormat('HH:mm').format(record.checkOut!) : '--:--';
-    final isAbsent = record.status == AttendanceStatus.absent;
-    Color rowBg;
-    switch (record.status) {
-      case AttendanceStatus.absent: rowBg = AppColors.error.withValues(alpha: 0.06); break;
-      case AttendanceStatus.late: rowBg = AppColors.warning.withValues(alpha: 0.06); break;
-      case AttendanceStatus.lateEarlyLeave: rowBg = AppColors.error.withValues(alpha: 0.04); break;
-      case AttendanceStatus.done: rowBg = Colors.transparent; break;
-      default: rowBg = Colors.transparent;
-    }
-    return GestureDetector(
-      onTap: () => _showDetail(context),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 3),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-        decoration: BoxDecoration(
-          color: rowBg == Colors.transparent
-            ? (isDark ? AppColors.darkCard : AppColors.lightCard) : rowBg,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: isDark ? AppColors.darkBorder.withValues(alpha: 0.5) : AppColors.lightBorder),
+    // Tạo avatar ký tự viết tắt
+    final initials = displayName
+        .trim()
+        .split(' ')
+        .map((e) => e.isNotEmpty ? e[0] : '')
+        .take(2)
+        .join()
+        .toUpperCase();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCard : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
         ),
-        child: Row(children: [
-          Expanded(flex: 2, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}',
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-            Text(weekday, style: TextStyle(fontSize: 10, color: Theme.of(context).textTheme.bodySmall?.color)),
-          ])),
-          Expanded(flex: 2, child: Text(isAbsent ? '--' : checkIn,
-            style: TextStyle(fontSize: 12, color: isAbsent ? AppColors.error : null), textAlign: TextAlign.center)),
-          Expanded(flex: 2, child: Text(isAbsent ? '--' : checkOut,
-            style: TextStyle(fontSize: 12, color: isAbsent ? AppColors.error : null), textAlign: TextAlign.center)),
-          Expanded(flex: 1, child: Text(record.normalHours.toStringAsFixed(1),
-            style: const TextStyle(fontSize: 11), textAlign: TextAlign.center)),
-          Expanded(flex: 1, child: Text(
-            record.overtimeHours > 0 ? record.overtimeHours.toStringAsFixed(1) : '-',
-            style: TextStyle(fontSize: 11, color: record.overtimeHours > 0 ? AppColors.warning : null),
-            textAlign: TextAlign.center)),
-          Expanded(flex: 1, child: Text(record.dailyCong.toStringAsFixed(1),
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
-              color: record.dailyCong >= 1 ? AppColors.success : record.dailyCong == 0 ? AppColors.error : AppColors.warning),
-            textAlign: TextAlign.center)),
-        ]),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Header info: Nhân viên, Mã NV, Phòng ban, nút Mở rộng
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Avatar
+                CircleAvatar(
+                  radius: 22,
+                  backgroundColor: AppColors.primaryBlue,
+                  child: Text(
+                    initials.isNotEmpty ? initials : 'NV',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Tên & Email
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        displayName,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        user?.department != null && user!.department!.isNotEmpty
+                            ? '${user!.department!} • $email'
+                            : email,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).textTheme.bodySmall?.color,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                // Mã NV Badge
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? AppColors.darkCardElevated
+                        : const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : const Color(0xFFE2E8F0),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        'MÃ NV',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).textTheme.bodySmall?.color,
+                        ),
+                      ),
+                      Text(
+                        employeeCode,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Nút thu gọn / mở rộng chi tiết
+                InkWell(
+                  onTap: onToggleExpand,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? AppColors.darkCardElevated
+                          : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      isExpanded
+                          ? Icons.keyboard_arrow_up_rounded
+                          : Icons.keyboard_arrow_down_rounded,
+                      size: 22,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const Divider(height: 1),
+
+          // Hàng chỉ số tóm tắt: Phòng ban, Số ngày đi làm, Tổng giờ HC, OT duyệt, OT chờ, Tổng công
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              alignment: WrapAlignment.spaceBetween,
+              children: [
+                _SummaryMetricItem(
+                  label: 'SỐ NGÀY ĐI LÀM',
+                  valueWidget: Text(
+                    '${summary.workDays} ngày',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                _SummaryMetricItem(
+                  label: 'TỔNG GIỜ HC',
+                  valueWidget: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.access_time_rounded,
+                          size: 14, color: AppColors.primaryBlue),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${summary.totalNormalHours.toStringAsFixed(summary.totalNormalHours % 1 == 0 ? 0 : 2)} h',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primaryBlue,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _SummaryMetricItem(
+                  label: 'GIỜ OT ĐÃ DUYỆT',
+                  valueWidget: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.access_time_rounded,
+                          size: 14, color: AppColors.success),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${summary.approvedOtHours.toStringAsFixed(summary.approvedOtHours % 1 == 0 ? 0 : 1)} h',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.success,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _SummaryMetricItem(
+                  label: 'GIỜ OT CHỜ DUYỆT',
+                  valueWidget: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.access_time_rounded,
+                          size: 14, color: AppColors.warning),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${summary.pendingOtHours.toStringAsFixed(summary.pendingOtHours % 1 == 0 ? 0 : 1)} h',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.warning,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _SummaryMetricItem(
+                  label: 'TỔNG SỐ CÔNG',
+                  valueWidget: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${summary.totalCong.toStringAsFixed(summary.totalCong % 1 == 0 ? 0 : 1)} công',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.success,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryMetricItem extends StatelessWidget {
+  final String label;
+  final Widget valueWidget;
+
+  const _SummaryMetricItem({required this.label, required this.valueWidget});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).textTheme.bodySmall?.color,
+            letterSpacing: 0.3,
+          ),
+        ),
+        const SizedBox(height: 3),
+        valueWidget,
+      ],
+    );
+  }
+}
+
+/// ── Phần Bảng Chi Tiết Từng Ngày Trong Tháng ─────────────────────────────────
+class _DetailedAttendanceSection extends StatelessWidget {
+  final List<AttendanceModel> records;
+  final int currentMonth;
+  final int currentYear;
+  final bool isDark;
+
+  const _DetailedAttendanceSection({
+    required this.records,
+    required this.currentMonth,
+    required this.currentYear,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (records.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkCard : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+              color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+        ),
+        child: Column(
+          children: [
+            Icon(Icons.event_busy_rounded,
+                size: 40, color: Theme.of(context).disabledColor),
+            const SizedBox(height: 8),
+            Text(
+              'Chưa có lịch sử chấm công tháng $currentMonth/$currentYear',
+              style: TextStyle(
+                  color: Theme.of(context).disabledColor, fontSize: 13),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCard : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Tiêu Đề Bảng
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+            child: Row(
+              children: [
+                Icon(Icons.calendar_month_rounded,
+                    size: 18, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Lịch sử quét vân tay (Tháng $currentMonth/$currentYear)',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '${records.length} ngày',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).textTheme.bodySmall?.color,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const Divider(height: 1),
+
+          // Bảng dữ liệu có thể cuộn ngang mượt mà
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              showCheckboxColumn: false,
+              headingRowColor: WidgetStateProperty.all(
+                isDark ? AppColors.darkCardElevated : const Color(0xFFF8FAFC),
+              ),
+              headingRowHeight: 40,
+              dataRowMinHeight: 46,
+              dataRowMaxHeight: 48,
+              horizontalMargin: 16,
+              columnSpacing: 20,
+              columns: const [
+                DataColumn(
+                    label: Text('Ngày',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 12))),
+                DataColumn(
+                    label: Text('Giờ vào',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 12))),
+                DataColumn(
+                    label: Text('Giờ ra',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 12))),
+                DataColumn(
+                    label: Text('Giờ HC',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 12))),
+                DataColumn(
+                    label: Text('Giờ OT',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 12))),
+                DataColumn(
+                    label: Text('★ Công',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                            color: AppColors.primaryBlue))),
+                DataColumn(
+                    label: Text('Trạng thái',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 12))),
+                DataColumn(
+                    label: Text('Trạng thái OT',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 12))),
+                DataColumn(
+                    label: Text('Ghi chú',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 12))),
+              ],
+              rows: records
+                  .map((record) => _buildDataRow(context, record, isDark))
+                  .toList(),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  void _showDetail(BuildContext context) {
+  DataRow _buildDataRow(
+      BuildContext context, AttendanceModel record, bool isDark) {
+    final date = DateTime.tryParse(record.date) ?? DateTime.now();
+    final dateFormatted = DateFormat('dd/MM/yyyy').format(date);
+    final checkIn = record.checkIn != null
+        ? DateFormat('HH:mm').format(record.checkIn!)
+        : '--:--';
+    final checkOut = record.checkOut != null
+        ? DateFormat('HH:mm').format(record.checkOut!)
+        : '--:--';
+
+    // Màu sắc check-in
+    final checkInColor = record.status == AttendanceStatus.late ||
+            record.status == AttendanceStatus.lateEarlyLeave
+        ? AppColors.warning
+        : (record.checkIn != null ? AppColors.success : null);
+
+    // Màu sắc check-out
+    final checkOutColor = record.checkOut != null
+        ? (record.status == AttendanceStatus.earlyLeave
+            ? AppColors.error
+            : AppColors.primaryBlue)
+        : null;
+
+    return DataRow(
+      onSelectChanged: (_) => _showDetailSheet(context, record),
+      cells: [
+        // 1. Ngày
+        DataCell(
+          Text(
+            dateFormatted,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          ),
+        ),
+        // 2. Giờ vào
+        DataCell(
+          Text(
+            checkIn,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: checkInColor,
+            ),
+          ),
+        ),
+        // 3. Giờ ra
+        DataCell(
+          Text(
+            checkOut,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: checkOutColor,
+            ),
+          ),
+        ),
+        // 4. Giờ HC
+        DataCell(
+          Text(
+            '${record.normalHours.toStringAsFixed(record.normalHours % 1 == 0 ? 0 : 1)}h',
+            style: const TextStyle(fontSize: 12),
+          ),
+        ),
+        // 5. Giờ OT
+        DataCell(
+          Text(
+            record.overtimeHours > 0
+                ? '${record.overtimeHours.toStringAsFixed(1)}h'
+                : '0h',
+            style: TextStyle(
+              fontSize: 12,
+              color: record.overtimeHours > 0 ? AppColors.warning : null,
+              fontWeight: record.overtimeHours > 0
+                  ? FontWeight.w600
+                  : FontWeight.normal,
+            ),
+          ),
+        ),
+        // 6. Công
+        DataCell(
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: record.dailyCong >= 1
+                  ? AppColors.success.withValues(alpha: 0.15)
+                  : (record.dailyCong > 0
+                      ? AppColors.warning.withValues(alpha: 0.15)
+                      : Colors.transparent),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              record.dailyCong > 0
+                  ? record.dailyCong
+                      .toStringAsFixed(record.dailyCong % 1 == 0 ? 0 : 1)
+                  : '0',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: record.dailyCong >= 1
+                    ? AppColors.success
+                    : (record.dailyCong > 0
+                        ? AppColors.warning
+                        : Theme.of(context).disabledColor),
+              ),
+            ),
+          ),
+        ),
+        // 7. Trạng thái
+        DataCell(_buildAttendanceStatusBadge(record)),
+        // 8. Trạng thái OT
+        DataCell(_buildOtStatusBadge(record)),
+        // 9. Ghi chú
+        DataCell(
+          Text(
+            record.note.isNotEmpty ? record.note : '-',
+            style: TextStyle(
+              fontSize: 11,
+              color: Theme.of(context).textTheme.bodySmall?.color,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAttendanceStatusBadge(AttendanceModel record) {
+    if (record.isLeave) {
+      return const StatusBadge(
+          label: 'Nghỉ phép', color: Color(0xFF8B5CF6), fontSize: 11);
+    }
+    switch (record.status) {
+      case AttendanceStatus.done:
+        return const StatusBadge(
+            label: 'Hoàn thành', color: AppColors.success, fontSize: 11);
+      case AttendanceStatus.late:
+        return const StatusBadge(
+            label: 'Đi muộn', color: AppColors.warning, fontSize: 11);
+      case AttendanceStatus.earlyLeave:
+        return const StatusBadge(
+            label: 'Về sớm', color: AppColors.error, fontSize: 11);
+      case AttendanceStatus.lateEarlyLeave:
+        return const StatusBadge(
+            label: 'Muộn & Về sớm', color: AppColors.error, fontSize: 11);
+      case AttendanceStatus.pending:
+        return const StatusBadge(
+            label: 'Hiện diện', color: AppColors.primaryBlue, fontSize: 11);
+      case AttendanceStatus.absent:
+        return const StatusBadge(
+            label: 'Vắng mặt', color: AppColors.error, fontSize: 11);
+      case AttendanceStatus.leave:
+        return const StatusBadge(
+            label: 'Nghỉ phép', color: Color(0xFF8B5CF6), fontSize: 11);
+      case AttendanceStatus.off:
+        return const StatusBadge(
+            label: 'Ngày nghỉ', color: Colors.grey, fontSize: 11);
+    }
+  }
+
+  Widget _buildOtStatusBadge(AttendanceModel record) {
+    if (record.overtimeHours <= 0) {
+      return const Text('-',
+          style: TextStyle(color: Colors.grey, fontSize: 12));
+    }
+    switch (record.otStatus) {
+      case OtStatus.approved:
+        return const StatusBadge(
+            label: 'Đã duyệt', color: AppColors.success, fontSize: 11);
+      case OtStatus.pending:
+        return const StatusBadge(
+            label: 'Chờ duyệt', color: AppColors.warning, fontSize: 11);
+      case OtStatus.rejected:
+        return const StatusBadge(
+            label: 'Từ chối', color: AppColors.error, fontSize: 11);
+      case OtStatus.none:
+        return const Text('-',
+            style: TextStyle(color: Colors.grey, fontSize: 12));
+    }
+  }
+
+  void _showDetailSheet(BuildContext context, AttendanceModel record) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final checkIn = record.checkIn != null ? DateFormat('HH:mm:ss').format(record.checkIn!) : 'Chưa có';
-    final checkOut = record.checkOut != null ? DateFormat('HH:mm:ss').format(record.checkOut!) : 'Chưa có';
+    final checkIn = record.checkIn != null
+        ? DateFormat('HH:mm:ss').format(record.checkIn!)
+        : 'Chưa có';
+    final checkOut = record.checkOut != null
+        ? DateFormat('HH:mm:ss').format(record.checkOut!)
+        : 'Chưa có';
+    final date = DateTime.tryParse(record.date) ?? DateTime.now();
+
     showModalBottomSheet(
-      context: context, backgroundColor: Colors.transparent,
+      context: context,
+      backgroundColor: Colors.transparent,
       builder: (_) => Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkCard : Colors.white,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(
-            color: isDark ? AppColors.darkBorder : AppColors.lightBorder, borderRadius: BorderRadius.circular(2)))),
-          const SizedBox(height: 20),
-          Text(DateFormat('EEEE, dd/MM/yyyy', 'vi').format(DateTime.parse(record.date)),
-            style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 16),
-          AttendanceStatusBadge(status: record.status.label),
-          const SizedBox(height: 16),
-          _DetailRow('Giờ vào', checkIn),
-          _DetailRow('Giờ ra', checkOut),
-          _DetailRow('Giờ HC', '${record.normalHours.toStringAsFixed(1)}h'),
-          _DetailRow('Giờ OT', '${record.overtimeHours.toStringAsFixed(1)}h'),
-          _DetailRow('Số công', record.dailyCong.toStringAsFixed(1)),
-          if (record.overtimeHours > 0)
-            _DetailRow('Trạng thái OT', record.otStatus.label),
-          if (record.note.isNotEmpty)
-            _DetailRow('Ghi chú', record.note),
-          const SizedBox(height: 16),
-        ]),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              DateFormat('EEEE, dd/MM/yyyy', 'vi').format(date),
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                _buildAttendanceStatusBadge(record),
+                const SizedBox(width: 8),
+                if (record.overtimeHours > 0) _buildOtStatusBadge(record),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _DetailModalRow(label: 'Giờ vào', value: checkIn),
+            _DetailModalRow(label: 'Giờ ra', value: checkOut),
+            _DetailModalRow(
+                label: 'Giờ hành chính',
+                value: '${record.normalHours.toStringAsFixed(1)}h'),
+            _DetailModalRow(
+                label: 'Giờ tăng ca (OT)',
+                value: '${record.overtimeHours.toStringAsFixed(1)}h'),
+            _DetailModalRow(
+                label: 'Số công',
+                value: '${record.dailyCong.toStringAsFixed(1)} công'),
+            if (record.overtimeHours > 0)
+              _DetailModalRow(
+                  label: 'Trạng thái OT', value: record.otStatus.label),
+            if (record.note.isNotEmpty)
+              _DetailModalRow(label: 'Ghi chú', value: record.note),
+            const SizedBox(height: 16),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _DetailRow extends StatelessWidget {
-  final String label, value;
-  const _DetailRow(this.label, this.value);
-  @override Widget build(BuildContext ctx) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 5),
-    child: Row(children: [
-      SizedBox(width: 100, child: Text('$label:', style: Theme.of(ctx).textTheme.bodySmall)),
-      Text(value, style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-    ]),
-  );
+class _DetailModalRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _DetailModalRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              '$label:',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

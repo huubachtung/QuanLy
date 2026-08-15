@@ -20,35 +20,26 @@ class AttendanceLoading extends AttendanceState {
 }
 
 class AttendanceLoaded extends AttendanceState {
-  final List<AttendanceModel> records;
+  final AttendanceResponseModel response;
   final int selectedMonth;
   final int selectedYear;
 
   const AttendanceLoaded({
-    required this.records,
+    required this.response,
     required this.selectedMonth,
     required this.selectedYear,
   });
 
+  List<AttendanceModel> get records => response.records;
+
   List<AttendanceModel> get workDayRecords =>
       records.where((r) => r.status != AttendanceStatus.off).toList();
 
-  AttendanceSummary get summary {
-    final work = workDayRecords.where((r) =>
-      r.status != AttendanceStatus.absent && r.checkIn != null).toList();
-    return AttendanceSummary(
-      workDays: work.length,
-      totalNormalHours: work.fold(0, (s, r) => s + r.normalHours),
-      approvedOtHours: records.where((r) => r.otStatus == OtStatus.approved).fold(0, (s, r) => s + r.overtimeHours),
-      pendingOtHours: records.where((r) => r.otStatus == OtStatus.pending).fold(0, (s, r) => s + r.overtimeHours),
-      rejectedOtHours: records.where((r) => r.otStatus == OtStatus.rejected).fold(0, (s, r) => s + r.overtimeHours),
-      totalCong: records.fold(0, (s, r) => s + r.dailyCong),
-      totalOtHours: records.where((r) => r.otStatus == OtStatus.approved).fold(0, (s, r) => s + r.overtimeHours),
-    );
-  }
+  AttendanceSummary get summary => response.summary;
 
   @override
-  List<Object?> get props => [records, selectedMonth, selectedYear];
+  List<Object?> get props => [response, selectedMonth, selectedYear];
+
 }
 
 class AttendanceError extends AttendanceState {

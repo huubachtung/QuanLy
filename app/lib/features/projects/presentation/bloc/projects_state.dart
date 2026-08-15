@@ -23,10 +23,24 @@ class ProjectsLoaded extends ProjectsState {
     required this.schedules,
   });
 
-  List<TaskModel> get myTasks => tasks.where((t) => t.assignedToId == 'user_001').toList();
+  List<TaskModel> myTasks([String? userId]) {
+    if (userId == null || userId.isEmpty) return tasks;
+    return tasks.where((t) => t.assignedToId == userId).toList();
+  }
 
-  List<TaskModel> tasksByStatus(TaskStatus status) =>
-      myTasks.where((t) => t.status == status).toList();
+  List<ProjectModel> myProjects([String? userId]) {
+    if (userId == null || userId.isEmpty) return projects;
+    return projects.where((p) {
+      final isLeader = p.leaderId == userId;
+      final isCreator = p.creatorId == userId;
+      final isSupporter = p.supporterIds.contains(userId);
+      final hasTask = tasks.any((t) => t.projectId == p.id && t.assignedToId == userId);
+      return isLeader || isCreator || isSupporter || hasTask;
+    }).toList();
+  }
+
+  List<TaskModel> tasksByStatus(TaskStatus status, [String? userId]) =>
+      myTasks(userId).where((t) => t.status == status).toList();
 
   List<TaskModel> tasksForProject(String projectId) =>
       tasks.where((t) => t.projectId == projectId).toList();

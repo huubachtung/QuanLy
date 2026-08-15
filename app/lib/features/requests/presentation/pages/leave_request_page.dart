@@ -48,7 +48,7 @@ class _LeaveRequestPageState extends State<LeaveRequestPage> {
         const SizedBox(height: 20),
         // Create request button
         SizedBox(width: double.infinity, child: ElevatedButton.icon(
-          onPressed: () => _showCreateSheet(context, isDark),
+          onPressed: () => _showCreateSheet(context, isDark, user!),
           icon: const Icon(Icons.add_circle_outline_rounded),
           label: const Text('Tạo đơn mới'),
           style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
@@ -83,7 +83,7 @@ class _LeaveRequestPageState extends State<LeaveRequestPage> {
   Widget _buildAnnualLeaveCard(BuildContext context, UserModel user, bool isDark) {
     final annualBalance = user.leaveBalances.firstWhere(
       (lb) => lb.leaveType == 'ANNUAL_LEAVE',
-      orElse: () => const LeaveBalance(leaveType: 'ANNUAL_LEAVE', label: 'Phép năm', totalDays: 12, usedDays: 0),
+      orElse: () => const LeaveBalanceEntity(leaveType: 'ANNUAL_LEAVE', label: 'Phép năm', totalDays: 12, usedDays: 0),
     );
     final remaining = annualBalance.remainingDays;
     Color badgeColor;
@@ -132,12 +132,12 @@ class _LeaveRequestPageState extends State<LeaveRequestPage> {
     );
   }
 
-  void _showCreateSheet(BuildContext context, bool isDark) {
+  void _showCreateSheet(BuildContext context, bool isDark, UserModel user) {
     showModalBottomSheet(
       context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
       builder: (_) => BlocProvider.value(
         value: context.read<LeaveBloc>(),
-        child: _CreateLeaveSheet(isDark: isDark),
+        child: _CreateLeaveSheet(isDark: isDark, user: user),
       ),
     );
   }
@@ -158,7 +158,7 @@ class _LeaveStatChip extends StatelessWidget {
 }
 
 class _LeaveBalanceRow extends StatelessWidget {
-  final LeaveBalance balance;
+  final LeaveBalanceEntity balance;
   final bool isDark;
   const _LeaveBalanceRow({required this.balance, required this.isDark});
 
@@ -216,7 +216,8 @@ class _RequestCard extends StatelessWidget {
 // ── Create Leave Sheet ─────────────────────────────────────────
 class _CreateLeaveSheet extends StatefulWidget {
   final bool isDark;
-  const _CreateLeaveSheet({required this.isDark});
+  final UserModel user;
+  const _CreateLeaveSheet({required this.isDark, required this.user});
   @override State<_CreateLeaveSheet> createState() => _CreateLeaveSheetState();
 }
 
@@ -228,6 +229,8 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
   DateTime _toDate = DateTime.now();
   String _lateTime = '09:30';
   String _earlyTime = '16:30';
+  String _shiftStartTime = '08:30';
+  String _shiftEndTime = '';
   final _reasonCtrl = TextEditingController();
 
   @override void dispose() { _reasonCtrl.dispose(); super.dispose(); }
@@ -239,7 +242,50 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
     : [LeaveType.shiftChange, LeaveType.onlineWork, LeaveType.latePermission, LeaveType.earlyLeaveRequest];
 
   bool get _isTimeInput =>
-    _selectedType == LeaveType.latePermission || _selectedType == LeaveType.earlyLeaveRequest;
+    _selectedType == LeaveType.latePermission || 
+    _selectedType == LeaveType.earlyLeaveRequest ||
+    _selectedType == LeaveType.shiftChange;
+
+  String? get _computedStartTime {
+    if (_selectedType == LeaveType.shiftChange) return _shiftStartTime;
+    if (_selectedType == LeaveType.latePermission) return widget.user.workStartTime;
+    if (_selectedType == LeaveType.earlyLeaveRequest) return _earlyTime;
+    switch (_duration) {
+      case LeaveDuration.morning:
+      case LeaveDuration.fullDay:
+        return widget.user.workStartTime;
+      case LeaveDuration.afternoon:
+        return '13:30';
+    }
+  }
+
+  String? get _computedEndTime {
+    if (_selectedType == LeaveType.shiftChange) return _shiftEndTime.isNotEmpty ? _shiftEndTime : null;
+    if (_selectedType == LeaveType.latePermission) return _lateTime;
+    if (_selectedType == LeaveType.earlyLeaveRequest) return widget.user.workEndTime;
+    switch (_duration) {
+      case LeaveDuration.afternoon:
+      case LeaveDuration.fullDay:
+        return widget.user.workEndTime;
+      case LeaveDuration.morning:
+        return '12:00';
+    }
+  }
+
+  double _calculateWorkingDays(DateTime start, DateTime end, LeaveDuration duration) {
+    if (duration == LeaveDuration.morning || duration == LeaveDuration.afternoon) return 0.5;
+    if (start.isAfter(end)) return 0;
+    
+    int count = 0;
+    DateTime cur = start;
+    while (!cur.isAfter(end)) {
+      if (cur.weekday != DateTime.sunday) { // Sunday is 7 in Dart
+        count++;
+      }
+      cur = cur.add(const Duration(days: 1));
+    }
+    return count.toDouble();
+  }
 
   void _submit() {
     if (_reasonCtrl.text.trim().isEmpty) {
@@ -247,16 +293,54 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
         const SnackBar(content: Text('Vui lòng nhập lý do'), backgroundColor: AppColors.error));
       return;
     }
+
+    // Auto-adjust dates
+    DateTime effectiveToDate = _toDate;
+    if (_selectedType.isSpecialRequest || _duration != LeaveDuration.fullDay) {
+      effectiveToDate = _fromDate;
+    }
+    
+    // Auto-adjust duration
+    LeaveDuration effectiveDuration = _duration;
+    if (!_selectedType.isSpecialRequest && 
+        (_fromDate.year != effectiveToDate.year || 
+         _fromDate.month != effectiveToDate.month || 
+         _fromDate.day != effectiveToDate.day)) {
+      effectiveDuration = LeaveDuration.fullDay;
+    }
+
+    final totalDays = _isTimeInput ? 0.0 : _calculateWorkingDays(_fromDate, effectiveToDate, effectiveDuration);
+
+    if (_selectedType.deductsAnnualLeave && totalDays > 0) {
+      final annualBalance = widget.user.leaveBalances.firstWhere(
+        (lb) => lb.leaveType == 'ANNUAL_LEAVE',
+        orElse: () => const LeaveBalanceEntity(leaveType: 'ANNUAL_LEAVE', label: 'Phép năm', totalDays: 12, usedDays: 0, pendingDays: 0),
+      );
+      
+      if (totalDays > annualBalance.remainingDays) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Không đủ phép. Khả dụng: ${annualBalance.remainingDays} ngày (đã trừ ngày chờ duyệt)'), 
+            backgroundColor: AppColors.error
+          )
+        );
+        return;
+      }
+    }
+
     final request = LeaveRequestModel(
       id: 'leave_new_${DateTime.now().millisecondsSinceEpoch}',
-      userId: 'user_001', employeeCode: 'JTV-0042',
+      userId: widget.user.id, 
+      employeeCode: widget.user.employeeCode ?? '',
       fromDate: DateFormat('yyyy-MM-dd').format(_fromDate),
-      toDate: DateFormat('yyyy-MM-dd').format(_toDate),
-      totalDays: _isTimeInput ? 0 : _duration.days,
-      leaveType: _selectedType, leaveDuration: _duration,
-      startTime: _selectedType == LeaveType.latePermission ? _lateTime : null,
-      endTime: _selectedType == LeaveType.earlyLeaveRequest ? _earlyTime : null,
-      reason: _reasonCtrl.text.trim(), status: RequestStatus.pending,
+      toDate: DateFormat('yyyy-MM-dd').format(effectiveToDate),
+      totalDays: totalDays,
+      leaveType: _selectedType, 
+      leaveDuration: effectiveDuration,
+      startTime: _computedStartTime,
+      endTime: _computedEndTime,
+      reason: _reasonCtrl.text.trim(), 
+      status: RequestStatus.pending,
       createdAt: DateTime.now(),
     );
     context.read<LeaveBloc>().add(CreateLeaveRequest(request));
@@ -294,17 +378,28 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
               // Group selector
               Row(children: [
                 Expanded(child: _GroupBtn('Xin nghỉ', 'leave', _group == 'leave', () => setState(() {
-                  _group = 'leave'; _selectedType = LeaveType.annualLeave; }))),
+                  _group = 'leave'; _selectedType = LeaveType.annualLeave; 
+                  if (_duration != LeaveDuration.fullDay) _toDate = _fromDate;
+                }))),
                 const SizedBox(width: 8),
                 Expanded(child: _GroupBtn('Đơn đặc biệt', 'special', _group == 'special', () => setState(() {
-                  _group = 'special'; _selectedType = LeaveType.shiftChange; }))),
+                  _group = 'special'; _selectedType = LeaveType.shiftChange; 
+                  _toDate = _fromDate;
+                  _duration = LeaveDuration.fullDay;
+                }))),
               ]),
               const SizedBox(height: 16),
               // Type selector
               Text('Loại đơn', style: Theme.of(context).textTheme.titleSmall),
               const SizedBox(height: 8),
               Wrap(spacing: 8, runSpacing: 8, children: _leaveTypes.map((t) => GestureDetector(
-                onTap: () => setState(() => _selectedType = t),
+                onTap: () => setState(() {
+                  _selectedType = t;
+                  if (t.isSpecialRequest) {
+                    _toDate = _fromDate;
+                    _duration = LeaveDuration.fullDay;
+                  }
+                }),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
@@ -322,16 +417,29 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
               // Date / Time fields
               if (!_isTimeInput) ...[
                 Row(children: [
-                  Expanded(child: _DateField('Từ ngày', _fromDate, (d) => setState(() => _fromDate = d))),
+                  Expanded(child: _DateField('Từ ngày', _fromDate, (d) => setState(() {
+                    _fromDate = d;
+                    if (_toDate.isBefore(d) || _duration != LeaveDuration.fullDay || _selectedType.isSpecialRequest) {
+                      _toDate = d;
+                    }
+                  }))),
                   const SizedBox(width: 12),
-                  Expanded(child: _DateField('Đến ngày', _toDate, (d) => setState(() => _toDate = d))),
+                  Expanded(child: _DateField('Đến ngày', _toDate, (d) => setState(() {
+                    _toDate = d;
+                    if (_toDate.isAfter(_fromDate)) {
+                      _duration = LeaveDuration.fullDay;
+                    }
+                  }))),
                 ]),
                 const SizedBox(height: 12),
                 if (!_selectedType.isSpecialRequest || _selectedType == LeaveType.onlineWork) ...[
                   Text('Thời lượng', style: Theme.of(context).textTheme.titleSmall),
                   const SizedBox(height: 8),
                   Row(children: LeaveDuration.values.map((d) => Expanded(child: GestureDetector(
-                    onTap: () => setState(() => _duration = d),
+                    onTap: () => setState(() {
+                      _duration = d;
+                      if (d != LeaveDuration.fullDay) _toDate = _fromDate;
+                    }),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 150),
                       margin: const EdgeInsets.only(right: 6),
@@ -351,21 +459,50 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
               ] else ...[
                 _DateField('Ngày', _fromDate, (d) => setState(() => _fromDate = d)),
                 const SizedBox(height: 12),
-                TextFormField(
-                  key: ValueKey(_selectedType),
-                  initialValue: _selectedType == LeaveType.latePermission ? _lateTime : _earlyTime,
-                  decoration: InputDecoration(
-                    labelText: _selectedType == LeaveType.latePermission ? 'Giờ đi muộn (HH:mm)' : 'Giờ về dự kiến (HH:mm)',
-                    prefixIcon: const Icon(Icons.access_time_rounded, size: 18),
+                if (_selectedType == LeaveType.shiftChange) ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          key: const ValueKey('shiftStart'),
+                          initialValue: _shiftStartTime,
+                          decoration: const InputDecoration(
+                            labelText: 'Giờ bắt đầu (HH:mm)',
+                            prefixIcon: Icon(Icons.access_time_rounded, size: 18),
+                          ),
+                          onChanged: (v) => _shiftStartTime = v,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          key: const ValueKey('shiftEnd'),
+                          initialValue: _shiftEndTime,
+                          decoration: const InputDecoration(
+                            labelText: 'Giờ kết thúc (Tuỳ chọn)',
+                            prefixIcon: Icon(Icons.access_time_rounded, size: 18),
+                          ),
+                          onChanged: (v) => _shiftEndTime = v,
+                        ),
+                      ),
+                    ],
                   ),
-                  onChanged: (v) {
-                    if (_selectedType == LeaveType.latePermission) {
-                      _lateTime = v;
-                    } else {
-                      _earlyTime = v;
-                    }
-                  },
-                ),
+                ] else
+                  TextFormField(
+                    key: ValueKey(_selectedType),
+                    initialValue: _selectedType == LeaveType.latePermission ? _lateTime : _earlyTime,
+                    decoration: InputDecoration(
+                      labelText: _selectedType == LeaveType.latePermission ? 'Giờ đi muộn dự kiến (HH:mm)' : 'Giờ về sớm dự kiến (HH:mm)',
+                      prefixIcon: const Icon(Icons.access_time_rounded, size: 18),
+                    ),
+                    onChanged: (v) {
+                      if (_selectedType == LeaveType.latePermission) {
+                        _lateTime = v;
+                      } else {
+                        _earlyTime = v;
+                      }
+                    },
+                  ),
                 const SizedBox(height: 12),
               ],
               TextField(
@@ -373,6 +510,27 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
                 maxLines: 3,
                 decoration: const InputDecoration(labelText: 'Lý do *', alignLabelWithHint: true),
               ),
+              const SizedBox(height: 16),
+              if (!_isTimeInput)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, color: AppColors.primaryBlue, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Số ngày nghỉ (trừ CN): ${_calculateWorkingDays(_fromDate, _duration != LeaveDuration.fullDay ? _fromDate : _toDate, _duration)} ngày',
+                          style: const TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.w600, fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               const SizedBox(height: 24),
               SizedBox(width: double.infinity, child: ElevatedButton(
                 onPressed: submitting ? null : _submit,

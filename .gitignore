@@ -6,17 +6,21 @@
 .Trashes
 ehthumbs.db
 Thumbs.db
+Desktop.ini
 $RECYCLE.BIN/
 
 # IDEs and Editors
 .idea/
 .vscode/
+*.iml
+*.ipr
+*.iws
 *.swp
 *.swo
 *~
 *.bak
 
-# Flutter/Dart
+# Flutter / Dart
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
@@ -25,8 +29,38 @@ $RECYCLE.BIN/
 .pub/
 build/
 coverage/
-*.log
 
-# Windows
-Thumbs.db
-Desktop.ini
+# Android
+**/android/.gradle/
+**/android/local.properties
+**/android/key.properties
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+**/android/.cxx/
+**/*.keystore
+**/*.jks
+
+# JDK folders (tránh đẩy nhầm JDK vào repo)
+**/oracleJdk*/
+**/jdk*/
+
+# iOS
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/app.framework
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Flutter/ephemeral/
+**/ios/Runner/GeneratedPluginRegistrant.*
+**/ios/**/.last_build_id
+
+# Environment & Logs
+*.log
+.env
+.env.*
+!.env.example
+debug.md
+tree.txt
