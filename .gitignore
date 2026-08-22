@@ -45,7 +45,7 @@ coverage/
 **/oracleJdk*/
 **/jdk*/
 
-# iOS
+# iOS & macOS Build / Config files
 **/ios/Pods/
 **/ios/.symlinks/
 **/ios/Flutter/Flutter.framework
@@ -54,8 +54,31 @@ coverage/
 **/ios/Flutter/app.framework
 **/ios/Flutter/flutter_export_environment.sh
 **/ios/Flutter/ephemeral/
+**/ios/Flutter/.last_build_id
 **/ios/Runner/GeneratedPluginRegistrant.*
+**/ios/**/GeneratedPluginRegistrant.*
 **/ios/**/.last_build_id
+**/ios/DerivedData/
+**/ios/**/DerivedData/
+*.mode1v3
+*.mode2v3
+*.moved-aside
+*.pbxuser
+*.perspectivev3
+!**/default.mode1v3
+!**/default.mode2v3
+!**/default.pbxuser
+!**/default.perspectivev3
+**/ios/**/xcuserdata/
+**/ios/**/xcdebugger/
+**/ios/**/project.xcworkspace/xcuserdata/
+**/ios/**/project.xcworkspace/xcshareddata/
+**/ios/**/Runner.xcworkspace/xcuserdata/
+**/ios/**/Runner.xcworkspace/xcshareddata/
+**/ios/Podfile.lock
+**/ios/**/Podfile.lock
+**/ios/Flutter/ephemeral/
+**/ios/**/.generated/
 
 # Environment & Logs
 *.log
