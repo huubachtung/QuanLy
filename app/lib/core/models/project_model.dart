@@ -46,18 +46,26 @@ class ProjectModel {
   }
 }
 
-ProjectStatus _parseProjectStatus(String? status) {
-  switch (status?.toUpperCase()) {
-    case 'IN PROGRESS':
-      return ProjectStatus.inProgress;
-    case 'FINISHED':
-      return ProjectStatus.finished;
-    case 'DELAYED':
-      return ProjectStatus.delayed;
-    case 'NOT STARTED':
-    default:
-      return ProjectStatus.notStarted;
+ProjectStatus _parseProjectStatus(dynamic status) {
+  String? statusStr;
+  if (status is Map) {
+    statusStr = status['name']?.toString() ??
+        status['status']?.toString() ??
+        status['label']?.toString();
+  } else {
+    statusStr = status?.toString();
   }
+  final upper = statusStr?.toUpperCase() ?? '';
+  if (upper.contains('IN PROGRESS') || upper.contains('IN_PROGRESS')) {
+    return ProjectStatus.inProgress;
+  }
+  if (upper.contains('FINISHED') || upper.contains('DONE') || upper.contains('HOÀN THÀNH')) {
+    return ProjectStatus.finished;
+  }
+  if (upper.contains('DELAYED') || upper.contains('TRỄ')) {
+    return ProjectStatus.delayed;
+  }
+  return ProjectStatus.notStarted;
 }
 
 enum ProjectStatus { notStarted, inProgress, finished, delayed }
@@ -70,6 +78,36 @@ extension ProjectStatusExt on ProjectStatus {
       case ProjectStatus.finished: return 'Hoàn thành';
       case ProjectStatus.delayed: return 'Trễ hạn';
     }
+  }
+}
+
+// ── Workflow Step Model ───────────────────────────────────────
+class WorkflowStepModel {
+  final String id;
+  final String stepId;
+  final String label;
+  final String icon;
+  final int order;
+  final bool isApprovalNode;
+
+  const WorkflowStepModel({
+    required this.id,
+    required this.stepId,
+    required this.label,
+    this.icon = '',
+    this.order = 1,
+    this.isApprovalNode = false,
+  });
+
+  factory WorkflowStepModel.fromJson(Map<String, dynamic> json) {
+    return WorkflowStepModel(
+      id: json['_id']?.toString() ?? '',
+      stepId: json['stepId']?.toString() ?? '',
+      label: json['label']?.toString() ?? '',
+      icon: json['icon']?.toString() ?? '',
+      order: (json['order'] as num?)?.toInt() ?? 1,
+      isApprovalNode: json['isApprovalNode'] == true,
+    );
   }
 }
 
@@ -86,6 +124,10 @@ class TaskModel {
   final String reporterName;
   final double progress;
   final TaskStatus status;
+  final String statusId;
+  final String statusName;
+  final String currentStepId;
+  final List<WorkflowStepModel> workflowSteps;
   final DateTime? startDate;
   final DateTime? deadlineDate;
   final DateTime? completedAt;
@@ -105,6 +147,10 @@ class TaskModel {
     required this.reporterName,
     this.progress = 0,
     required this.status,
+    this.statusId = '',
+    this.statusName = '',
+    this.currentStepId = '',
+    this.workflowSteps = const [],
     this.startDate,
     this.deadlineDate,
     this.completedAt,
@@ -113,7 +159,91 @@ class TaskModel {
     this.requiredSkill = '',
   });
 
+  TaskModel copyWith({
+    String? id,
+    String? name,
+    String? description,
+    String? projectId,
+    String? projectName,
+    String? assignedToId,
+    String? assignedToName,
+    String? reporterId,
+    String? reporterName,
+    double? progress,
+    TaskStatus? status,
+    String? statusId,
+    String? statusName,
+    String? currentStepId,
+    List<WorkflowStepModel>? workflowSteps,
+    DateTime? startDate,
+    DateTime? deadlineDate,
+    DateTime? completedAt,
+    int? difficulty,
+    String? priority,
+    String? requiredSkill,
+  }) {
+    return TaskModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      projectId: projectId ?? this.projectId,
+      projectName: projectName ?? this.projectName,
+      assignedToId: assignedToId ?? this.assignedToId,
+      assignedToName: assignedToName ?? this.assignedToName,
+      reporterId: reporterId ?? this.reporterId,
+      reporterName: reporterName ?? this.reporterName,
+      progress: progress ?? this.progress,
+      status: status ?? this.status,
+      statusId: statusId ?? this.statusId,
+      statusName: statusName ?? this.statusName,
+      currentStepId: currentStepId ?? this.currentStepId,
+      workflowSteps: workflowSteps ?? this.workflowSteps,
+      startDate: startDate ?? this.startDate,
+      deadlineDate: deadlineDate ?? this.deadlineDate,
+      completedAt: completedAt ?? this.completedAt,
+      difficulty: difficulty ?? this.difficulty,
+      priority: priority ?? this.priority,
+      requiredSkill: requiredSkill ?? this.requiredSkill,
+    );
+  }
+
   factory TaskModel.fromJson(Map<String, dynamic> json) {
+    // Parse status object or string
+    String statusName = '';
+    String statusId = '';
+    if (json['status'] is Map) {
+      statusName = json['status']['name']?.toString() ?? '';
+      statusId = json['status']['_id']?.toString() ?? '';
+    } else if (json['status'] is String) {
+      statusName = json['status'] as String;
+    }
+
+    // Parse workflow template steps
+    List<WorkflowStepModel> steps = [];
+    if (json['workflow_template'] is Map &&
+        json['workflow_template']['steps'] is List) {
+      final stepsRaw = json['workflow_template']['steps'] as List<dynamic>;
+      steps = stepsRaw
+          .whereType<Map<String, dynamic>>()
+          .map((s) => WorkflowStepModel.fromJson(s))
+          .toList()
+        ..sort((a, b) => a.order.compareTo(b.order));
+    }
+
+    // Determine currentStepId
+    String currentStep = '';
+    if (steps.isNotEmpty) {
+      final matching = steps.where(
+          (s) => s.label == statusName || (statusId.isNotEmpty && s.id == statusId));
+      if (matching.isNotEmpty) {
+        currentStep = matching.first.stepId;
+      } else {
+        currentStep = steps.first.stepId;
+      }
+    }
+
+    final parsedStatus = parseTaskStatus(statusName.isNotEmpty ? statusName : json['status']?.toString());
+
     return TaskModel(
       id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
@@ -125,7 +255,11 @@ class TaskModel {
       reporterId: (json['reporter'] is Map ? json['reporter']['_id'] : json['reporter'])?.toString() ?? json['reporterId']?.toString() ?? '',
       reporterName: (json['reporter'] is Map ? json['reporter']['displayName'] : json['reporterName'])?.toString() ?? '',
       progress: (json['progress'] ?? 0).toDouble(),
-      status: _parseTaskStatus(json['status']?.toString()),
+      status: parsedStatus,
+      statusId: statusId,
+      statusName: statusName.isNotEmpty ? statusName : parsedStatus.label,
+      currentStepId: currentStep,
+      workflowSteps: steps,
       startDate: json['start_date'] != null ? DateTime.tryParse(json['start_date'].toString())?.toLocal() : null,
       deadlineDate: json['deadline_date'] != null ? DateTime.tryParse(json['deadline_date'].toString())?.toLocal() : null,
       completedAt: json['completedAt'] != null ? DateTime.tryParse(json['completedAt'].toString())?.toLocal() : null,
@@ -136,20 +270,29 @@ class TaskModel {
   }
 }
 
-TaskStatus _parseTaskStatus(String? status) {
-  switch (status?.toUpperCase()) {
-    case 'IN_PROGRESS':
-    case 'IN PROGRESS':
-      return TaskStatus.inProgress;
-    case 'DONE':
-    case 'FINISHED':
-      return TaskStatus.done;
-    case 'CANCELLED':
-      return TaskStatus.cancelled;
-    case 'TODO':
-    default:
-      return TaskStatus.todo;
+TaskStatus parseTaskStatus(String? status) {
+  if (status == null || status.isEmpty) return TaskStatus.todo;
+  final upper = status.toUpperCase();
+  if (upper.contains('DONE') ||
+      upper.contains('FINISHED') ||
+      upper.contains('MERGED') ||
+      upper.contains('HOÀN THÀNH')) {
+    return TaskStatus.done;
   }
+  if (upper.contains('CANCEL') || upper.contains('HỦY')) {
+    return TaskStatus.cancelled;
+  }
+  if (upper.contains('TEST') ||
+      upper.contains('CODE') ||
+      upper.contains('REVIEW') ||
+      upper.contains('DOING') ||
+      upper.contains('IN_PROGRESS') ||
+      upper.contains('IN PROGRESS') ||
+      upper.contains('ĐANG') ||
+      upper.contains('TIẾN ĐỘ')) {
+    return TaskStatus.inProgress;
+  }
+  return TaskStatus.todo;
 }
 
 enum TaskStatus { todo, inProgress, done, cancelled }

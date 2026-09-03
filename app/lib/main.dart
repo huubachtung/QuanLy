@@ -79,7 +79,7 @@ class _JussTVAppState extends State<JussTVApp> {
                 if (state is AuthAuthenticated) {
                   if (!_dataLoaded) {
                     _dataLoaded = true;
-                    context.read<NotificationBloc>().add(LoadNotifications());
+                    context.read<NotificationBloc>().add(const LoadNotifications());
                   }
                 } else if (state is AuthUnauthenticated) {
                   _dataLoaded = false;

@@ -11,7 +11,12 @@ class UpdateTaskProgressUseCase implements UseCase<void, UpdateTaskParams> {
 
   @override
   Future<Either<Failure, void>> call(UpdateTaskParams params) async {
-    return await repository.updateTaskProgress(params.taskId, params.progress, params.status);
+    return await repository.updateTaskProgress(
+      params.taskId,
+      params.progress,
+      params.status,
+      toStepId: params.toStepId,
+    );
   }
 }
 
@@ -19,9 +24,15 @@ class UpdateTaskParams extends Equatable {
   final String taskId;
   final double progress;
   final TaskStatus? status;
+  final String? toStepId;
 
-  const UpdateTaskParams({required this.taskId, required this.progress, this.status});
+  const UpdateTaskParams({
+    required this.taskId,
+    required this.progress,
+    this.status,
+    this.toStepId,
+  });
 
   @override
-  List<Object?> get props => [taskId, progress, status];
+  List<Object?> get props => [taskId, progress, status, toStepId];
 }

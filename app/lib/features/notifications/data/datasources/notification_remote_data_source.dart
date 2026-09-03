@@ -3,7 +3,7 @@ import '../../../../core/network/api_client.dart';
 import '../../../../core/constants/api_constants.dart';
 
 abstract class NotificationRemoteDataSource {
-  Future<List<NotificationModel>> getNotifications();
+  Future<NotificationListResult> getNotifications();
   Future<void> markAsRead(String id);
   Future<void> markAllAsRead();
 }
@@ -14,10 +14,13 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
   NotificationRemoteDataSourceImpl({required this.apiClient});
 
   @override
-  Future<List<NotificationModel>> getNotifications() async {
+  Future<NotificationListResult> getNotifications() async {
     final response = await apiClient.dio.get(ApiConstants.notifications);
-    final data = response.data['data'] as List<dynamic>? ?? [];
-    return data.map((e) => NotificationModel.fromJson(e)).toList();
+    final data = response.data;
+    if (data is Map<String, dynamic>) {
+      return NotificationListResult.fromJson(data);
+    }
+    return const NotificationListResult(notifications: [], unreadCount: 0);
   }
 
   @override

@@ -63,7 +63,15 @@ GoRouter buildRouter(AuthBloc authBloc) {
             builder: (ctx, st) => ProjectDetailPage(projectId: st.pathParameters['id']!),
           ),
           GoRoute(
+            path: '/project/:id',
+            builder: (ctx, st) => ProjectDetailPage(projectId: st.pathParameters['id']!),
+          ),
+          GoRoute(
             path: '/tasks/:id',
+            builder: (ctx, st) => TaskDetailPage(taskId: st.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: '/task/:id',
             builder: (ctx, st) => TaskDetailPage(taskId: st.pathParameters['id']!),
           ),
           GoRoute(path: '/calendar', builder: (ctx, st) => const ProjectCalendarPage()),

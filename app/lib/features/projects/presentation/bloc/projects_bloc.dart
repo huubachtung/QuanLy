@@ -37,16 +37,10 @@ class ProjectsBloc extends Bloc<ProjectsEvent, ProjectsState> {
       // Optimistic update locally
       final updatedTasks = currentState.tasks.map((t) {
         if (t.id == event.taskId) {
-          return TaskModel(
-            id: t.id, name: t.name, description: t.description,
-            projectId: t.projectId, projectName: t.projectName,
-            assignedToId: t.assignedToId, assignedToName: t.assignedToName,
-            reporterId: t.reporterId, reporterName: t.reporterName,
+          return t.copyWith(
             progress: event.progress,
             status: event.status ?? t.status,
-            startDate: t.startDate, deadlineDate: t.deadlineDate,
             completedAt: event.status == TaskStatus.done ? DateTime.now() : t.completedAt,
-            difficulty: t.difficulty, priority: t.priority, requiredSkill: t.requiredSkill,
           );
         }
         return t;
@@ -59,15 +53,26 @@ class ProjectsBloc extends Bloc<ProjectsEvent, ProjectsState> {
         taskId: event.taskId,
         progress: event.progress,
         status: event.status,
+        toStepId: event.toStepId,
       ));
 
-      failureOrSuccess.fold(
-        (failure) {
-          // Revert if failed - basic approach: reload or emit error (skipping complex revert for now)
+      await failureOrSuccess.fold(
+        (failure) async {
           emit(ProjectsError(failure.message));
           add(LoadProjectsData()); // reload
         },
-        (_) => null,
+        (_) async {
+          // Re-fetch from server to confirm server data changes
+          final freshData = await getProjectsData(NoParams());
+          freshData.fold(
+            (f) => null,
+            (data) => emit(ProjectsLoaded(
+              projects: data['projects'] as List<ProjectModel>,
+              tasks: data['tasks'] as List<TaskModel>,
+              schedules: data['schedules'] as List<ProjectScheduleModel>,
+            )),
+          );
+        },
       );
     }
   }

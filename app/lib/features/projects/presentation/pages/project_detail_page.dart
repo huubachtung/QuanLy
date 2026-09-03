@@ -133,8 +133,14 @@ class _TaskRow extends StatelessWidget {
               maxLines: 1, overflow: TextOverflow.ellipsis),
             const SizedBox(height: 4),
             Row(children: [
-              StatusBadge(label: task.status.label, color: _statusColor, fontSize: 10,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2)),
+              StatusBadge(
+                  label: task.statusName.isNotEmpty
+                      ? task.statusName
+                      : task.status.label,
+                  color: _statusColor,
+                  fontSize: 10,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2)),
               const SizedBox(width: 8),
               if (task.deadlineDate != null)
                 Text(DateFormat('dd/MM').format(task.deadlineDate!),

@@ -139,7 +139,8 @@ class _TaskCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis)),
             const SizedBox(width: 8),
-            StatusBadge.taskStatus(task.status.label),
+            StatusBadge.taskStatus(
+                task.statusName.isNotEmpty ? task.statusName : task.status.label),
           ]),
           const SizedBox(height: 4),
           Text(task.projectName,

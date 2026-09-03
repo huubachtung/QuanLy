@@ -15,7 +15,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
   });
 
   @override
-  Future<Either<Failure, List<NotificationModel>>> getNotifications() async {
+  Future<Either<Failure, NotificationListResult>> getNotifications() async {
     if (await networkInfo.isConnected) {
       try {
         final data = await remoteDataSource.getNotifications();

@@ -17,7 +17,7 @@ List<ProjectScheduleModel> _parseSchedules(List<dynamic> jsonList) {
 
 abstract class ProjectRemoteDataSource {
   Future<Map<String, dynamic>> getProjectsData();
-  Future<void> updateTaskProgress(String taskId, double progress, TaskStatus? status);
+  Future<void> updateTaskProgress(String taskId, double progress, TaskStatus? status, {String? toStepId});
 }
 
 class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
@@ -59,20 +59,23 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
   }
 
   @override
-  Future<void> updateTaskProgress(String taskId, double progress, TaskStatus? status) async {
-    final Map<String, dynamic> data = {'progress': progress};
-    if (status != null) {
-      // Map TaskStatus enum to API string
-      String statusStr;
-      switch (status) {
-        case TaskStatus.inProgress: statusStr = 'IN PROGRESS'; break;
-        case TaskStatus.done: statusStr = 'FINISHED'; break;
-        case TaskStatus.cancelled: statusStr = 'CANCELLED'; break;
-        case TaskStatus.todo: statusStr = 'TODO'; break;
-      }
-      data['status'] = statusStr;
-    }
-
+  Future<void> updateTaskProgress(String taskId, double progress, TaskStatus? status, {String? toStepId}) async {
+    // 1. Cập nhật tiến độ task lên server (progress là integer 0-100)
+    // Lưu ý: Không gửi status string ("IN PROGRESS", "TODO"...) vì status trong backend là ObjectId (ref: "Status")
+    final Map<String, dynamic> data = {'progress': progress.round()};
     await apiClient.dio.put('${ApiConstants.tasks}/$taskId', data: data);
+
+    // 2. Chuyển bước workflow nếu người dùng chọn bước mới
+    if (toStepId != null && toStepId.isNotEmpty) {
+      try {
+        await apiClient.dio.post(ApiConstants.workflowTransition, data: {
+          'scopeType': 'task',
+          'scopeId': taskId,
+          'toStepId': toStepId,
+        });
+      } catch (e) {
+        debugPrint('Workflow transition failed: $e');
+      }
+    }
   }
 }

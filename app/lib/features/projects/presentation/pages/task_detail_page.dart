@@ -19,39 +19,69 @@ class TaskDetailPage extends StatefulWidget {
 class _TaskDetailPageState extends State<TaskDetailPage> {
   double _progress = 0;
   TaskStatus? _status;
+  String? _selectedStepId;
   bool _saving = false;
   bool _initialized = false;
 
-  void _save(BuildContext context) {
+  void _save(BuildContext context, TaskModel task) {
+    if (_saving) return;
     setState(() => _saving = true);
+
     context.read<ProjectsBloc>().add(UpdateTaskProgressEvent(
           taskId: widget.taskId,
           progress: _progress,
           status: _status,
+          toStepId: (_selectedStepId != null &&
+                  _selectedStepId != task.currentStepId)
+              ? _selectedStepId
+              : null,
         ));
-    setState(() => _saving = false);
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('✅ Cập nhật task thành công'),
-      backgroundColor: AppColors.success,
-      duration: Duration(seconds: 2),
-    ));
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ProjectsBloc, ProjectsState>(
+    return BlocConsumer<ProjectsBloc, ProjectsState>(
+      listener: (context, state) {
+        if (_saving) {
+          if (state is ProjectsLoaded) {
+            setState(() => _saving = false);
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('✅ Cập nhật tiến độ task thành công'),
+              backgroundColor: AppColors.success,
+              duration: Duration(seconds: 2),
+            ));
+          } else if (state is ProjectsError) {
+            setState(() => _saving = false);
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text('❌ Lỗi cập nhật: ${state.message}'),
+              backgroundColor: AppColors.error,
+              duration: const Duration(seconds: 3),
+            ));
+          }
+        }
+      },
       builder: (context, state) {
         if (state is! ProjectsLoaded) {
           return const Scaffold(
               body: Center(child: CircularProgressIndicator()));
         }
 
-        final task = state.tasks.firstWhere((t) => t.id == widget.taskId);
+        final taskIndex =
+            state.tasks.indexWhere((t) => t.id == widget.taskId);
+        if (taskIndex == -1) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Chi tiết công việc')),
+            body: const Center(child: Text('Không tìm thấy công việc này')),
+          );
+        }
+
+        final task = state.tasks[taskIndex];
         final isDark = Theme.of(context).brightness == Brightness.dark;
 
         if (!_initialized) {
           _progress = task.progress;
           _status = task.status;
+          _selectedStepId = task.currentStepId;
           _initialized = true;
         }
 
@@ -85,6 +115,10 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
         }
 
         return Scaffold(
+          appBar: AppBar(
+            title: const Text('Chi tiết công việc'),
+            elevation: 0,
+          ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child:
@@ -114,9 +148,11 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                             fontSize: 11),
                       ]),
                       const SizedBox(height: 8),
-                      Text(task.description,
-                          style: Theme.of(context).textTheme.bodyMedium),
-                      const SizedBox(height: 16),
+                      if (task.description.isNotEmpty) ...[
+                        Text(task.description,
+                            style: Theme.of(context).textTheme.bodyMedium),
+                        const SizedBox(height: 16),
+                      ],
                       // Info rows
                       _InfoRow(
                           icon: Icons.folder_outlined,
@@ -124,9 +160,24 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                           value: task.projectName),
                       const SizedBox(height: 6),
                       _InfoRow(
+                          icon: Icons.assignment_turned_in_outlined,
+                          label: 'Trạng thái',
+                          value: task.statusName.isNotEmpty
+                              ? task.statusName
+                              : task.status.label,
+                          valueColor: AppColors.primaryBlue),
+                      const SizedBox(height: 6),
+                      _InfoRow(
                           icon: Icons.person_outline_rounded,
                           label: 'Người giao',
                           value: task.reporterName),
+                      if (task.assignedToName.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        _InfoRow(
+                            icon: Icons.person_pin_circle_outlined,
+                            label: 'Người thực hiện',
+                            value: task.assignedToName),
+                      ],
                       if (task.deadlineDate != null) ...[
                         const SizedBox(height: 6),
                         _InfoRow(
@@ -172,29 +223,29 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                           child: CircularPercentIndicator(
                         radius: 60,
                         lineWidth: 10,
-                        percent: _progress / 100,
-                        progressColor: AppColors.primaryLight,
+                        percent: (_progress / 100).clamp(0.0, 1.0),
+                        progressColor: AppColors.primaryBlue,
                         backgroundColor:
-                            AppColors.primaryLight.withValues(alpha: 0.15),
+                            AppColors.primaryBlue.withValues(alpha: 0.15),
                         center: Text('${_progress.toInt()}%',
                             style: const TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w800,
-                                color: AppColors.primaryLight)),
+                                color: AppColors.primaryBlue)),
                       )),
                       const SizedBox(height: 20),
                       // Slider
                       SliderTheme(
                         data: SliderTheme.of(context).copyWith(
-                          activeTrackColor: AppColors.primaryLight,
+                          activeTrackColor: AppColors.primaryBlue,
                           inactiveTrackColor:
-                              AppColors.primaryLight.withValues(alpha: 0.2),
+                              AppColors.primaryBlue.withValues(alpha: 0.2),
                           thumbColor: Colors.white,
                           overlayColor:
-                              AppColors.primaryLight.withValues(alpha: 0.15),
+                              AppColors.primaryBlue.withValues(alpha: 0.15),
                         ),
                         child: Slider(
-                          value: _progress,
+                          value: _progress.clamp(0.0, 100.0),
                           min: 0,
                           max: 100,
                           divisions: 20,
@@ -203,70 +254,164 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                             _progress = v;
                             if (v == 100) {
                               _status = TaskStatus.done;
-                            } else if (v > 0 && _status == TaskStatus.todo)
+                            } else if (v > 0 && _status == TaskStatus.todo) {
                               _status = TaskStatus.inProgress;
-                            else if (v == 0) _status = TaskStatus.todo;
+                            } else if (v == 0) {
+                              _status = TaskStatus.todo;
+                            }
                           }),
                         ),
                       ),
                       const SizedBox(height: 16),
-                      // Status selector
-                      Text('Trạng thái',
-                          style: Theme.of(context).textTheme.titleSmall),
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
-                        children: TaskStatus.values
-                            .where((s) => s != TaskStatus.cancelled)
-                            .map((s) => GestureDetector(
-                                  onTap: () => setState(() {
-                                    _status = s;
-                                    if (s == TaskStatus.done) {
-                                      _progress = 100;
-                                    } else if (s == TaskStatus.todo)
-                                      _progress = 0;
-                                  }),
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 150),
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 14, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: _status == s
-                                          ? AppColors.primaryBlue
-                                          : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(
-                                          color: _status == s
-                                              ? AppColors.primaryBlue
-                                              : (isDark
-                                                  ? AppColors.darkBorder
-                                                  : AppColors.lightBorder)),
-                                    ),
-                                    child: Text(s.label,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
-                                          color: _status == s
-                                              ? Colors.white
-                                              : null,
-                                        )),
-                                  ),
-                                ))
-                            .toList(),
+                      // Status / Workflow step selector
+                      Row(
+                        children: [
+                          Text('Quy trình / Trạng thái',
+                              style: Theme.of(context).textTheme.titleSmall),
+                          if (task.statusName.isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryBlue
+                                    .withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                task.statusName,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primaryBlue,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
+                      const SizedBox(height: 10),
+                      if (task.workflowSteps.isNotEmpty)
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: task.workflowSteps.map((step) {
+                            final isSelected =
+                                _selectedStepId == step.stepId;
+                            return GestureDetector(
+                              onTap: () => setState(() {
+                                _selectedStepId = step.stepId;
+                                final mapped = parseTaskStatus(step.label);
+                                _status = mapped;
+                                if (mapped == TaskStatus.done) {
+                                  _progress = 100;
+                                }
+                              }),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? AppColors.primaryBlue
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? AppColors.primaryBlue
+                                        : (isDark
+                                            ? AppColors.darkBorder
+                                            : AppColors.lightBorder),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (step.isApprovalNode) ...[
+                                      Icon(
+                                        Icons.verified_user_outlined,
+                                        size: 14,
+                                        color: isSelected
+                                            ? Colors.white
+                                            : AppColors.warning,
+                                      ),
+                                      const SizedBox(width: 4),
+                                    ],
+                                    Text(
+                                      step.label,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color:
+                                            isSelected ? Colors.white : null,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        )
+                      else
+                        Wrap(
+                          spacing: 8,
+                          children: TaskStatus.values
+                              .where((s) => s != TaskStatus.cancelled)
+                              .map((s) => GestureDetector(
+                                    onTap: () => setState(() {
+                                      _status = s;
+                                      if (s == TaskStatus.done) {
+                                        _progress = 100;
+                                      } else if (s == TaskStatus.todo) {
+                                        _progress = 0;
+                                      }
+                                    }),
+                                    child: AnimatedContainer(
+                                      duration:
+                                          const Duration(milliseconds: 150),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 14, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: _status == s
+                                            ? AppColors.primaryBlue
+                                            : Colors.transparent,
+                                        borderRadius:
+                                            BorderRadius.circular(20),
+                                        border: Border.all(
+                                            color: _status == s
+                                                ? AppColors.primaryBlue
+                                                : (isDark
+                                                    ? AppColors.darkBorder
+                                                    : AppColors.lightBorder)),
+                                      ),
+                                      child: Text(s.label,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: _status == s
+                                                ? Colors.white
+                                                : null,
+                                          )),
+                                    ),
+                                  ))
+                              .toList(),
+                        ),
                       const SizedBox(height: 20),
                       SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _saving ? null : () => _save(context),
-                            child: _saving
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                        color: Colors.white, strokeWidth: 2))
-                                : const Text('Lưu thay đổi'),
-                          )),
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _saving
+                              ? null
+                              : () => _save(context, task),
+                          child: _saving
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                      color: Colors.white, strokeWidth: 2))
+                              : const Text('Lưu thay đổi'),
+                        ),
+                      ),
                     ]),
               ),
             ]),

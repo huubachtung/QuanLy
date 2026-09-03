@@ -29,10 +29,11 @@ class ProjectRepositoryImpl implements ProjectRepository {
   }
 
   @override
-  Future<Either<Failure, void>> updateTaskProgress(String taskId, double progress, TaskStatus? status) async {
+  Future<Either<Failure, void>> updateTaskProgress(
+      String taskId, double progress, TaskStatus? status, {String? toStepId}) async {
     if (await networkInfo.isConnected) {
       try {
-        await remoteDataSource.updateTaskProgress(taskId, progress, status);
+        await remoteDataSource.updateTaskProgress(taskId, progress, status, toStepId: toStepId);
         return const Right(null);
       } on Exception catch (e) {
         return Left(Failure.fromException(e));

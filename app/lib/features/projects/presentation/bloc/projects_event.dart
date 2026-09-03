@@ -14,13 +14,15 @@ class UpdateTaskProgressEvent extends ProjectsEvent {
   final String taskId;
   final double progress;
   final TaskStatus? status;
+  final String? toStepId;
 
   const UpdateTaskProgressEvent({
     required this.taskId,
     required this.progress,
     this.status,
+    this.toStepId,
   });
 
   @override
-  List<Object?> get props => [taskId, progress, status];
+  List<Object?> get props => [taskId, progress, status, toStepId];
 }
