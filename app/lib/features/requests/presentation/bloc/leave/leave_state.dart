@@ -12,7 +12,18 @@ class LeaveLoading extends LeaveState {}
 
 class LeaveLoaded extends LeaveState {
   final List<LeaveRequestModel> requests;
-  const LeaveLoaded(this.requests);
+  final double annualLeaveBalance;
+  final double annualMaxDays;
+  final double pendingDeducts;
+  final Map<String, LeaveStatItem> stats;
+
+  const LeaveLoaded({
+    required this.requests,
+    this.annualLeaveBalance = 12.0,
+    this.annualMaxDays = 12.0,
+    this.pendingDeducts = 0.0,
+    this.stats = const {},
+  });
 
   List<LeaveRequestModel> byStatus(RequestStatus? status) {
     if (status == null) return requests;
@@ -30,7 +41,14 @@ class LeaveLoaded extends LeaveState {
     return requests;
   }
 
-  @override List<Object?> get props => [requests];
+  @override
+  List<Object?> get props => [
+        requests,
+        annualLeaveBalance,
+        annualMaxDays,
+        pendingDeducts,
+        stats,
+      ];
 }
 
 class LeaveError extends LeaveState {

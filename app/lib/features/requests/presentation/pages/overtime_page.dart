@@ -110,7 +110,14 @@ class _OvertimePageState extends State<OvertimePage> {
     final entries = <Map<String, dynamic>>[];
     String? invalidDate;
 
-    for (final r in state.records) {
+    final otRecords = state.records
+        .where((r) =>
+            r.calculatedOtHours > 0.0 ||
+            r.requestedOtHours > 0.0 ||
+            r.status != OtStatus.none)
+        .toList();
+
+    for (final r in otRecords) {
       if (!r.isEditable) continue;
 
       final hours = double.tryParse(_hoursCtrl[r.date]?.text.trim() ?? '${r.requestedOtHours}') ?? r.requestedOtHours;
@@ -277,80 +284,98 @@ class _OvertimePageState extends State<OvertimePage> {
 
           if (state is OvertimeLoading || state is OvertimeInitial)
             const Expanded(child: Center(child: CircularProgressIndicator()))
-          else if (state is OvertimeLoaded && state.records.isEmpty)
-            const Expanded(
-              child: EmptyState(
-                icon: Icons.timer_off_rounded,
-                title: 'Không có dữ liệu chấm công OT trong tháng này',
-              ),
-            )
-          else if (state is OvertimeLoaded) ...[
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 90),
-                itemCount: state.records.length,
-                itemBuilder: (_, i) {
-                  final r = state.records[i];
-                  return _OtCard(
-                    record: r,
-                    isDark: isDark,
-                    hoursCtrl: _getHoursCtrl(r),
-                    reasonCtrl: _getReasonCtrl(r),
-                    error: _errors[r.date],
-                    onSave: () => _saveSingle(r),
-                    onNoOt: () {
-                      _hoursCtrl[r.date]?.text = '0';
-                      _reasonCtrl[r.date]?.text = 'Không OT';
-                      context.read<OvertimeBloc>().add(MarkNoOt(r.date));
-                    },
-                    onDelete: () => _confirmDelete(r),
-                  );
-                },
-              ),
-            ),
+          else if (state is OvertimeLoaded) ...() {
+            final otRecords = state.records
+                .where((r) =>
+                    r.calculatedOtHours > 0.0 ||
+                    r.requestedOtHours > 0.0 ||
+                    r.status != OtStatus.none)
+                .toList();
 
-            // Floating Bottom Bar for Bulk Submission
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                border: Border(
-                    top: BorderSide(
-                        color: isDark ? AppColors.darkBorder : AppColors.lightBorder)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
-                    blurRadius: 10,
-                    offset: const Offset(0, -2),
+            if (otRecords.isEmpty) {
+              return [
+                Expanded(
+                  child: EmptyState(
+                    icon: Icons.timer_off_rounded,
+                    title:
+                        'Không có ngày nào hệ thống ghi nhận tăng ca (> 0h) trong tháng $currentMonth/$currentYear',
                   ),
-                ],
+                ),
+              ];
+            }
+
+            return [
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 90),
+                  itemCount: otRecords.length,
+                  itemBuilder: (_, i) {
+                    final r = otRecords[i];
+                    return _OtCard(
+                      record: r,
+                      isDark: isDark,
+                      hoursCtrl: _getHoursCtrl(r),
+                      reasonCtrl: _getReasonCtrl(r),
+                      error: _errors[r.date],
+                      onSave: () => _saveSingle(r),
+                      onNoOt: () {
+                        _hoursCtrl[r.date]?.text = '0';
+                        _reasonCtrl[r.date]?.text = 'Không OT';
+                        context.read<OvertimeBloc>().add(MarkNoOt(r.date));
+                      },
+                      onDelete: () => _confirmDelete(r),
+                    );
+                  },
+                ),
               ),
-              child: SafeArea(
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: state.isSubmitting ? null : () => _submitBulk(state),
-                    icon: state.isSubmitting
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : const Icon(Icons.send_rounded, size: 18),
-                    label: Text(
-                      state.isSubmitting
-                          ? 'Đang gửi duyệt...'
-                          : 'Gửi duyệt toàn bộ bảng OT tháng',
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+              // Floating Bottom Bar for Bulk Submission
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                  border: Border(
+                      top: BorderSide(
+                          color: isDark
+                              ? AppColors.darkBorder
+                              : AppColors.lightBorder)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
+                      blurRadius: 10,
+                      offset: const Offset(0, -2),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ],
+                ),
+                child: SafeArea(
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed:
+                          state.isSubmitting ? null : () => _submitBulk(state),
+                      icon: state.isSubmitting
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2))
+                          : const Icon(Icons.send_rounded, size: 18),
+                      label: Text(
+                        state.isSubmitting
+                            ? 'Đang gửi duyệt...'
+                            : 'Gửi duyệt toàn bộ bảng OT tháng',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ]
+            ];
+          }(),
         ]);
       },
     );
@@ -451,71 +476,158 @@ class _OtCard extends StatelessWidget {
         Row(children: [
           // Date Badge
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
               color: isWeekend
                   ? AppColors.warning.withValues(alpha: 0.15)
                   : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Text(
-              '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')} ($weekdayStr)',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: isWeekend
-                    ? AppColors.warning
-                    : Theme.of(context).colorScheme.primary,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.calendar_today_rounded,
+                  size: 13,
+                  color: isWeekend
+                      ? AppColors.warning
+                      : Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')} ($weekdayStr)',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: isWeekend
+                        ? AppColors.warning
+                        : Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: 8),
-          // Checkin - Checkout
-          Expanded(
-            child: Text(
-              '$checkIn → $checkOut',
-              style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).textTheme.bodySmall?.color,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
+          const Spacer(),
           // Status Chip
           _StatusChip(record.status),
         ]),
 
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
 
-        // Calculated OT Row
-        Row(
-          children: [
-            Icon(Icons.precision_manufacturing_rounded,
-                size: 14, color: Theme.of(context).textTheme.bodySmall?.color),
-            const SizedBox(width: 4),
-            Text(
-              'Hệ thống ghi nhận: ',
-              style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).textTheme.bodySmall?.color,
-              ),
+        // Check-in / Check-out & System OT Highlight Box
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
             ),
-            Text(
-              '${record.calculatedOtHours.toStringAsFixed(1)}h',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
+          ),
+          child: Row(
+            children: [
+              // CheckIn
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: AppColors.success.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.login_rounded,
+                          size: 13, color: AppColors.success),
+                    ),
+                    const SizedBox(width: 6),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Giờ vào',
+                            style: TextStyle(
+                                fontSize: 10,
+                                color: Theme.of(context).textTheme.bodySmall?.color)),
+                        Text(checkIn,
+                            style: const TextStyle(
+                                fontSize: 13, fontWeight: FontWeight.w700)),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const Spacer(),
-            if (isApproved && record.approverName.isNotEmpty)
-              Text(
-                'Duyệt bởi: ${record.approverName}',
-                style: const TextStyle(fontSize: 11, color: AppColors.success),
+              // Separator
+              Container(
+                height: 24,
+                width: 1,
+                color: isDark ? AppColors.darkBorder : const Color(0xFFCBD5E1),
               ),
-          ],
+              // CheckOut
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 10),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.logout_rounded,
+                            size: 13, color: AppColors.error),
+                      ),
+                      const SizedBox(width: 6),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Giờ ra',
+                              style: TextStyle(
+                                  fontSize: 10,
+                                  color: Theme.of(context).textTheme.bodySmall?.color)),
+                          Text(checkOut,
+                              style: const TextStyle(
+                                  fontSize: 13, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Separator
+              Container(
+                height: 24,
+                width: 1,
+                color: isDark ? AppColors.darkBorder : const Color(0xFFCBD5E1),
+              ),
+              // System OT
+              Padding(
+                padding: const EdgeInsets.only(left: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text('Hệ thống',
+                        style: TextStyle(
+                            fontSize: 10,
+                            color: Theme.of(context).textTheme.bodySmall?.color)),
+                    Text('${record.calculatedOtHours.toStringAsFixed(1)}h',
+                        style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primaryBlue)),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
+
+        if (isApproved && record.approverName.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            'Duyệt bởi: ${record.approverName}',
+            style: const TextStyle(fontSize: 11, color: AppColors.success),
+          ),
+        ],
 
         // Rejection banner if rejected
         if (isRejected && record.rejectReason.isNotEmpty) ...[
@@ -556,6 +668,8 @@ class _OtCard extends StatelessWidget {
                   TextField(
                     controller: hoursCtrl,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    autocorrect: false,
+                    enableSuggestions: false,
                     decoration: const InputDecoration(
                       labelText: 'Giờ xin (h)',
                       isDense: true,
@@ -570,6 +684,10 @@ class _OtCard extends StatelessWidget {
             Expanded(
               child: TextField(
                 controller: reasonCtrl,
+                keyboardType: TextInputType.text,
+                textCapitalization: TextCapitalization.sentences,
+                autocorrect: false,
+                enableSuggestions: false,
                 decoration: InputDecoration(
                   labelText: 'Lý do tăng ca *',
                   isDense: true,

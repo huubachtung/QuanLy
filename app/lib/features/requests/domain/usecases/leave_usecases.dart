@@ -4,10 +4,10 @@ import '../../../../core/models/leave_request_model.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../repositories/leave_repository.dart';
 
-class GetLeaveRequestsUseCase implements UseCase<List<LeaveRequestModel>, NoParams> {
+class GetLeaveRequestsUseCase implements UseCase<LeaveDataResponse, NoParams> {
   final LeaveRepository repository;
   GetLeaveRequestsUseCase(this.repository);
-  @override Future<Either<Failure, List<LeaveRequestModel>>> call(NoParams params) => repository.getLeaveRequests();
+  @override Future<Either<Failure, LeaveDataResponse>> call(NoParams params) => repository.getLeaveRequests();
 }
 
 class CreateLeaveRequestUseCase implements UseCase<bool, LeaveRequestModel> {

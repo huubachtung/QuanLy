@@ -81,7 +81,7 @@ class ProfilePage extends StatelessWidget {
               const SizedBox(height: 16),
               // Quick stats
               Row(children: [
-                _QuickStat('Phép còn lại', '${user.leaveBalances.firstWhere((lb) => lb.leaveType == "ANNUAL_LEAVE", orElse: () => const LeaveBalanceModel(leaveType: '', label: '', totalDays: 12, usedDays: 0)).remainingDays.toStringAsFixed(1)} ngày', AppColors.success, isDark),
+                _QuickStat('Phép còn lại', '${user.annualLeaveBalance % 1 == 0 ? user.annualLeaveBalance.toInt() : user.annualLeaveBalance} ngày', AppColors.success, isDark),
                 const SizedBox(width: 8),
                 _QuickStat('Ngày vào làm', user.hiredDate != null ? fmt.format(user.hiredDate!) : 'N/A', AppColors.info, isDark),
                 const SizedBox(width: 8),

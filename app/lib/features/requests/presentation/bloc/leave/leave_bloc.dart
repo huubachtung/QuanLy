@@ -24,7 +24,13 @@ class LeaveBloc extends Bloc<LeaveEvent, LeaveState> {
     final failureOrData = await getRequests(NoParams());
     failureOrData.fold(
       (f) => emit(LeaveError(f.message)),
-      (data) => emit(LeaveLoaded(data)),
+      (data) => emit(LeaveLoaded(
+        requests: data.requests,
+        annualLeaveBalance: data.annualLeaveBalance,
+        annualMaxDays: data.annualMaxDays,
+        pendingDeducts: data.pendingDeducts,
+        stats: data.stats,
+      )),
     );
   }
 

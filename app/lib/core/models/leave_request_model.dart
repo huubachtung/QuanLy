@@ -328,3 +328,93 @@ extension RequestStatusExt on RequestStatus {
     }
   }
 }
+
+// ── Leave Stat & Response Models ──────────────────────────────
+class LeaveStatItem {
+  final String leaveType;
+  final String label;
+  final bool deductsLeave;
+  final double max;
+  final double approved;
+  final double pending;
+  final double? remaining;
+  final bool useSharedPool;
+  final String? limitUnit;
+  final bool govMandated;
+
+  const LeaveStatItem({
+    required this.leaveType,
+    required this.label,
+    required this.deductsLeave,
+    required this.max,
+    required this.approved,
+    required this.pending,
+    this.remaining,
+    this.useSharedPool = false,
+    this.limitUnit,
+    this.govMandated = false,
+  });
+
+  bool get isSpecialRequest =>
+      leaveType == 'SHIFT_CHANGE' ||
+      leaveType == 'ONLINE_WORK' ||
+      leaveType == 'LATE_PERMISSION' ||
+      leaveType == 'EARLY_LEAVE_REQUEST';
+
+  factory LeaveStatItem.fromJson(String key, Map<String, dynamic> json) {
+    return LeaveStatItem(
+      leaveType: key,
+      label: json['label']?.toString() ?? key,
+      deductsLeave: json['deductsLeave'] == true,
+      max: (json['max'] as num?)?.toDouble() ?? 0.0,
+      approved: (json['approved'] as num?)?.toDouble() ?? 0.0,
+      pending: (json['pending'] as num?)?.toDouble() ?? 0.0,
+      remaining: (json['remaining'] as num?)?.toDouble(),
+      useSharedPool: json['useSharedPool'] == true,
+      limitUnit: json['limitUnit']?.toString(),
+      govMandated: json['govMandated'] == true,
+    );
+  }
+}
+
+class LeaveDataResponse {
+  final List<LeaveRequestModel> requests;
+  final double annualLeaveBalance;
+  final double annualMaxDays;
+  final double pendingDeducts;
+  final Map<String, LeaveStatItem> stats;
+
+  const LeaveDataResponse({
+    required this.requests,
+    this.annualLeaveBalance = 12.0,
+    this.annualMaxDays = 12.0,
+    this.pendingDeducts = 0.0,
+    this.stats = const {},
+  });
+
+  factory LeaveDataResponse.fromJson(Map<String, dynamic> json) {
+    final rawList = json['data'] as List<dynamic>? ?? [];
+    final requests = rawList
+        .map((e) => LeaveRequestModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+
+    final statsMap = <String, LeaveStatItem>{};
+    if (json['stats'] is Map<String, dynamic>) {
+      final rawStats = json['stats'] as Map<String, dynamic>;
+      rawStats.forEach((k, v) {
+        if (v is Map<String, dynamic>) {
+          statsMap[k] = LeaveStatItem.fromJson(k, v);
+        }
+      });
+    }
+
+    return LeaveDataResponse(
+      requests: requests,
+      annualLeaveBalance: (json['annualLeaveBalance'] as num?)?.toDouble() ?? 12.0,
+      annualMaxDays: (json['annualMaxDays'] as num?)?.toDouble() ?? 12.0,
+      pendingDeducts: (json['pendingDeducts'] as num?)?.toDouble() ?? 0.0,
+      stats: statsMap,
+    );
+  }
+}
+

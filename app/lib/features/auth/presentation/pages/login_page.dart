@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart'; // Vẫn giữ tạm cho ThemeProvider
 import 'package:app/core/utils/app_colors.dart';
+import 'package:app/core/utils/vietnamese_to_telex_formatter.dart';
 import '../../../../core/providers/theme_provider.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
@@ -170,7 +171,19 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                     TextField(
                                       controller: _userCtrl,
                                       keyboardType: TextInputType.text,
+                                      autocorrect: false,
+                                      enableSuggestions: false,
+                                      inputFormatters: [VietnameseToTelexFormatter()],
                                       textInputAction: TextInputAction.next,
+                                      onChanged: (val) {
+                                        final telex = vietnameseToTelex(val);
+                                        if (telex != val) {
+                                          _userCtrl.value = TextEditingValue(
+                                            text: telex,
+                                            selection: TextSelection.collapsed(offset: telex.length),
+                                          );
+                                        }
+                                      },
                                       decoration: const InputDecoration(
                                         labelText: 'Tên đăng nhập',
                                         prefixIcon: Icon(Icons.person_outline_rounded, size: 20),
@@ -180,7 +193,19 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                     TextField(
                                       controller: _passCtrl,
                                       obscureText: _obscure,
+                                      autocorrect: false,
+                                      enableSuggestions: false,
+                                      inputFormatters: [VietnameseToTelexFormatter()],
                                       textInputAction: TextInputAction.done,
+                                      onChanged: (val) {
+                                        final telex = vietnameseToTelex(val);
+                                        if (telex != val) {
+                                          _passCtrl.value = TextEditingValue(
+                                            text: telex,
+                                            selection: TextSelection.collapsed(offset: telex.length),
+                                          );
+                                        }
+                                      },
                                       onSubmitted: (_) => _login(),
                                       decoration: InputDecoration(
                                         labelText: 'Mật khẩu',

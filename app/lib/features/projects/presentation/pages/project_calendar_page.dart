@@ -160,7 +160,29 @@ class _ProjectCalendarPageState extends State<ProjectCalendarPage> {
                 _selectedDay = sel;
                 _focusedDay = foc;
               }),
-              onPageChanged: (foc) => setState(() => _focusedDay = foc),
+              calendarBuilders: CalendarBuilders<ProjectModel>(
+                markerBuilder: (context, date, events) {
+                  if (events.isEmpty) return const SizedBox.shrink();
+                  return Positioned(
+                    bottom: 2,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: events.take(4).map((project) {
+                        return Container(
+                          width: 6,
+                          height: 6,
+                          margin: const EdgeInsets.symmetric(horizontal: 1),
+                          decoration: BoxDecoration(
+                            color: _statusColor(project.status),
+                            shape: BoxShape.circle,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  );
+                },
+              ),
               calendarStyle: CalendarStyle(
                 outsideDaysVisible: false,
                 todayDecoration: BoxDecoration(
@@ -180,8 +202,7 @@ class _ProjectCalendarPageState extends State<ProjectCalendarPage> {
                     color: isDark
                         ? Colors.white70
                         : AppColors.primaryBlue.withValues(alpha: 0.7)),
-                markerDecoration: const BoxDecoration(
-                    color: AppColors.gold, shape: BoxShape.circle),
+                markersMaxCount: 4,
                 markerSize: 6,
                 markerMargin: const EdgeInsets.symmetric(horizontal: 1),
               ),

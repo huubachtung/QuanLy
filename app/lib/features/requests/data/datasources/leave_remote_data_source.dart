@@ -3,7 +3,7 @@ import '../../../../core/network/api_client.dart';
 import '../../../../core/constants/api_constants.dart';
 
 abstract class LeaveRemoteDataSource {
-  Future<List<LeaveRequestModel>> getLeaveRequests();
+  Future<LeaveDataResponse> getLeaveRequests();
   Future<bool> createRequest(LeaveRequestModel request);
   Future<bool> cancelRequest(String id);
 }
@@ -14,10 +14,12 @@ class LeaveRemoteDataSourceImpl implements LeaveRemoteDataSource {
   LeaveRemoteDataSourceImpl({required this.apiClient});
 
   @override
-  Future<List<LeaveRequestModel>> getLeaveRequests() async {
+  Future<LeaveDataResponse> getLeaveRequests() async {
     final response = await apiClient.dio.get(ApiConstants.leaveRequests);
-    final data = response.data['data'] as List<dynamic>? ?? [];
-    return data.map((e) => LeaveRequestModel.fromJson(e)).toList();
+    if (response.data is Map<String, dynamic>) {
+      return LeaveDataResponse.fromJson(response.data as Map<String, dynamic>);
+    }
+    return const LeaveDataResponse(requests: []);
   }
 
   @override

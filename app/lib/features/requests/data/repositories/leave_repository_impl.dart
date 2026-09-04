@@ -15,7 +15,7 @@ class LeaveRepositoryImpl implements LeaveRepository {
   });
 
   @override
-  Future<Either<Failure, List<LeaveRequestModel>>> getLeaveRequests() async {
+  Future<Either<Failure, LeaveDataResponse>> getLeaveRequests() async {
     if (await networkInfo.isConnected) {
       try {
         final data = await remoteDataSource.getLeaveRequests();

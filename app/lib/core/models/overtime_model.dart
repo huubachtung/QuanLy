@@ -99,8 +99,18 @@ class OvertimeModel {
   bool get isEditable => status != OtStatus.approved;
 
   factory OvertimeModel.fromJson(Map<String, dynamic> json) {
-    final rawCheckIn = _formatTimeString(json['checkIn']?.toString());
-    final rawCheckOut = _formatTimeString(json['checkOut']?.toString());
+    final rawCheckIn = _formatTimeString(
+      json['checkIn']?.toString() ??
+          json['checkInTime']?.toString() ??
+          json['startTime']?.toString() ??
+          (json['attendance'] is Map ? json['attendance']['checkIn']?.toString() : null),
+    );
+    final rawCheckOut = _formatTimeString(
+      json['checkOut']?.toString() ??
+          json['checkOutTime']?.toString() ??
+          json['endTime']?.toString() ??
+          (json['attendance'] is Map ? json['attendance']['checkOut']?.toString() : null),
+    );
 
     return OvertimeModel(
       id: json['id']?.toString() ?? json['_id']?.toString(),
@@ -179,6 +189,12 @@ String? _formatTimeString(String? raw) {
     if (dt != null) {
       return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
     }
+  }
+  final parts = raw.split(':');
+  if (parts.length >= 2) {
+    final h = parts[0].trim().padLeft(2, '0');
+    final m = parts[1].trim().padLeft(2, '0');
+    return '$h:$m';
   }
   return raw;
 }

@@ -527,3 +527,42 @@ Dưới đây là các lưu ý sống còn về bảo mật để hệ thống k
   - [ ] Tạo 2 route: `POST /api/users/fcm-token` và `DELETE /api/users/fcm-token` (có JWT Auth Middleware bảo vệ).
   - [ ] Tạo service `sendNotificationToUser` hỗ trợ gửi multicast và cơ chế tự động dọn dẹp token rác.
   - [ ] Gắn hàm gửi thông báo vào các controller nghiệp vụ (giao việc, đổi trạng thái quy trình, duyệt nghỉ phép).
+
+
+## 6. Log khởi tạo quyền thông báo
+
+I/m.jusstv.QuanLy(14224): NativeAlloc concurrent mark compact GC freed 593KB AllocSpace bytes, 6(384KB) LOS objects, 49% free, 3364KB/6728KB, paused 854us,5.999ms total 63.333ms
+I/flutter (14224): 🔔 Notification permission: AuthorizationStatus.authorized
+D/InsetsController(14224): hide(ime())
+I/ImeTracker(14224): com.jusstv.QuanLy:ccb25b4c: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+I/scudo   (14224): Can't populate more pages for size class 1104.
+I/flutter (14224): ✅ PushNotificationService initialized
+I/FLTFireBGExecutor(14224): Creating background FlutterEngine instance, with args: [--start-paused, --enable-dart-profiling]
+W/libc    (14224): Access denied finding property "vendor.mesa.virtgpu.kumquat"
+D/FLTFireContextHolder(14224): received application context.
+I/flutter (14224): [IMPORTANT:flutter/shell/platform/android/android_context_gl_impeller.cc(104)] Using the Impeller rendering backend (OpenGLES).
+W/libc    (14224): Access denied finding property "vendor.mesa.virtgpu.kumquat"
+I/FLTFireMsgService(14224): FlutterFirebaseMessagingBackgroundService started!
+I/flutter (14224): 📱 FCM Token: <SAMPLE_FCM_DEVICE_TOKEN>
+
+I/flutter (14224): ╔╣ Request ║ POST 
+I/flutter (14224): ║  https://chaos.io.vn/api/users/fcm-token
+I/flutter (14224): ╚════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+I/flutter (14224): ╔ Headers 
+I/flutter (14224): ╟ content-type: application/json
+I/flutter (14224): ╟ Authorization: 
+I/flutter (14224): ║ Bearer <SAMPLE_JWT_ACCESS_TOKEN>
+I/flutter (14224): ╟ contentType: application/json
+I/flutter (14224): ╟ responseType: ResponseType.json
+I/flutter (14224): ╟ followRedirects: true
+I/flutter (14224): ╟ connectTimeout: 0:00:15.000000
+I/flutter (14224): ╟ receiveTimeout: 0:00:15.000000
+I/flutter (14224): ╚════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+I/flutter (14224): ╔ Body 
+I/flutter (14224): ╟ token: 
+I/flutter (14224): ║ <SAMPLE_FCM_DEVICE_TOKEN>
+I/flutter (14224): ╟ device: android
+I/flutter (14224): ╚════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+I/flutter (14224): ║ {token: <SAMPLE_FCM_DEVICE_TOKEN>, device: android}
+I/flutter (14224): ! Không thể đăng ký FCM Token: DioException [bad response]: null
+I/flutter (14224): Error: Instance of 'ServerException'
