@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "171539151886",
+    "project_id": "quan-ly-nhan-vien-f3d16",
+    "storage_bucket": "quan-ly-nhan-vien-f3d16.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:171539151886:android:38249c068043530129505f",
+        "android_client_info": {
+          "package_name": "com.jusstv.QuanLy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBxYksihAsWj899dOFY4W4vtK9hsK-wbh4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

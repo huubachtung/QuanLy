@@ -4,9 +4,11 @@ import 'package:provider/provider.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'app/router.dart';
 import 'package:app/core/utils/theme.dart';
 import 'injection_container.dart' as di;
+import 'core/services/push_notification_service.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_event.dart';
 import 'features/auth/presentation/bloc/auth_state.dart';
@@ -21,6 +23,14 @@ import 'core/providers/theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Khởi tạo Firebase (bọc try/catch chống crash app khi môi trường thiếu Play Services)
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    debugPrint('⚠️ Lỗi khởi tạo Firebase: $e');
+  }
+
   await initializeDateFormatting('vi_VN', null);
   await initializeDateFormatting('vi', null);
   await di.init();
@@ -41,6 +51,7 @@ class _JussTVAppState extends State<JussTVApp> {
   late final AuthBloc _authBloc;
   late final GoRouter _router;
   bool _dataLoaded = false;
+  bool _pushInitialized = false;
 
   @override
   void initState() {
@@ -54,6 +65,17 @@ class _JussTVAppState extends State<JussTVApp> {
   void dispose() {
     _router.dispose();
     super.dispose();
+  }
+
+  /// Khởi tạo Push Notification Service (gọi 1 lần sau khi Firebase sẵn sàng)
+  Future<void> _initPushNotifications() async {
+    if (_pushInitialized) return;
+    _pushInitialized = true;
+
+    await PushNotificationService.instance.initialize(
+      router: _router,
+      apiClient: di.sl(),
+    );
   }
 
   @override
@@ -75,13 +97,21 @@ class _JussTVAppState extends State<JussTVApp> {
         child: Consumer<ThemeProvider>(
           builder: (context, themeProvider, _) {
             return BlocListener<AuthBloc, AuthState>(
-              listener: (context, state) {
+              listener: (context, state) async {
                 if (state is AuthAuthenticated) {
                   if (!_dataLoaded) {
                     _dataLoaded = true;
                     context.read<NotificationBloc>().add(const LoadNotifications());
+
+                    // Khởi tạo Push Notification và đăng ký token lên server
+                    await _initPushNotifications();
+                    await PushNotificationService.instance.registerTokenToServer();
                   }
                 } else if (state is AuthUnauthenticated) {
+                  if (_dataLoaded) {
+                    // Hủy đăng ký token khi logout
+                    await PushNotificationService.instance.unregisterTokenFromServer();
+                  }
                   _dataLoaded = false;
                 }
               },
