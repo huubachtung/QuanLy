@@ -13,6 +13,15 @@ class LoadNotifications extends NotificationEvent {
   List<Object?> get props => [isRefresh];
 }
 
+class PollNotifications extends NotificationEvent {
+  final bool isInitial;
+  const PollNotifications({this.isInitial = false});
+  @override
+  List<Object?> get props => [isInitial];
+}
+
+class ResetNotificationState extends NotificationEvent {}
+
 class MarkNotificationRead extends NotificationEvent {
   final String id;
   const MarkNotificationRead(this.id);

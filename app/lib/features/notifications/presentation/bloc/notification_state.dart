@@ -40,6 +40,22 @@ class NotificationLoaded extends NotificationState {
   List<Object?> get props => [notifications, unreadCount];
 }
 
+/// State phát ra khi chu kỳ polling phát hiện có thông báo mới chưa đọc.
+/// Kế thừa [NotificationLoaded] để UI vẫn hiển thị danh sách và badge bình thường,
+/// đồng thời [BlocListener] trong main.dart có thể bắt được để kích hoạt Local Notification banner.
+class NotificationNewArrived extends NotificationLoaded {
+  final List<NotificationModel> newItems;
+
+  const NotificationNewArrived({
+    required this.newItems,
+    required super.notifications,
+    required super.unreadCount,
+  });
+
+  @override
+  List<Object?> get props => [newItems, notifications, unreadCount];
+}
+
 class NotificationError extends NotificationState {
   final String message;
   const NotificationError(this.message);

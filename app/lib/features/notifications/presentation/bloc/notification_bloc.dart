@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../domain/usecases/notification_usecases.dart';
@@ -10,12 +11,17 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   final MarkNotificationReadUseCase markRead;
   final MarkAllNotificationsReadUseCase markAllRead;
 
+  final Set<String> _knownNotificationIds = {};
+  bool _baselineLoaded = false;
+
   NotificationBloc({
     required this.getNotifications,
     required this.markRead,
     required this.markAllRead,
   }) : super(NotificationInitial()) {
     on<LoadNotifications>(_onLoadData);
+    on<PollNotifications>(_onPoll);
+    on<ResetNotificationState>(_onReset);
     on<MarkNotificationRead>(_onMarkRead);
     on<MarkAllNotificationsRead>(_onMarkAllRead);
   }
@@ -36,12 +42,82 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
         }
       },
       (data) {
+        _knownNotificationIds.addAll(data.notifications.map((n) => n.id));
+        _baselineLoaded = true;
+
         emit(NotificationLoaded(
           notifications: data.notifications,
           unreadCount: data.unreadCount,
         ));
       },
     );
+  }
+
+  Future<void> _onPoll(
+    PollNotifications event,
+    Emitter<NotificationState> emit,
+  ) async {
+    debugPrint('🔔 [NotificationBloc] Bắt đầu polling thông báo...');
+    final failureOrData = await getNotifications(NoParams());
+    failureOrData.fold(
+      (failure) {
+        debugPrint('🔔 [NotificationBloc] Polling thất bại: ${failure.message}');
+      },
+      (data) {
+        final fetchedNotifications = data.notifications;
+        final fetchedIds = fetchedNotifications.map((n) => n.id).toSet();
+
+        if (event.isInitial || !_baselineLoaded) {
+          // Lần đầu tải (baseline): ghi nhận tất cả ID hiện có, không bắn banner
+          _knownNotificationIds
+            ..clear()
+            ..addAll(fetchedIds);
+          _baselineLoaded = true;
+
+          debugPrint(
+            '🔔 [NotificationBloc] Baseline nạp xong: ${_knownNotificationIds.length} thông báo, unread: ${data.unreadCount}',
+          );
+
+          emit(NotificationLoaded(
+            notifications: fetchedNotifications,
+            unreadCount: data.unreadCount,
+          ));
+          return;
+        }
+
+        // Các chu kỳ polling tiếp theo: diff tìm thông báo mới chưa đọc
+        final newItems = fetchedNotifications
+            .where((n) => !_knownNotificationIds.contains(n.id) && !n.isRead)
+            .toList();
+
+        // Cập nhật tập ID đã biết
+        _knownNotificationIds.addAll(fetchedIds);
+
+        if (newItems.isNotEmpty) {
+          debugPrint('🔔 [NotificationBloc] Phát hiện ${newItems.length} thông báo mới!');
+          emit(NotificationNewArrived(
+            newItems: newItems,
+            notifications: fetchedNotifications,
+            unreadCount: data.unreadCount,
+          ));
+        } else {
+          emit(NotificationLoaded(
+            notifications: fetchedNotifications,
+            unreadCount: data.unreadCount,
+          ));
+        }
+      },
+    );
+  }
+
+  void _onReset(
+    ResetNotificationState event,
+    Emitter<NotificationState> emit,
+  ) {
+    debugPrint('🔔 [NotificationBloc] Reset trạng thái thông báo');
+    _knownNotificationIds.clear();
+    _baselineLoaded = false;
+    emit(NotificationInitial());
   }
 
   Future<void> _onMarkRead(

@@ -1,23 +1,14 @@
 import Flutter
 import UIKit
-import FirebaseCore
-import FirebaseMessaging
 
 @main
-@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
+@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate, UNUserNotificationCenterDelegate {
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    // Initialize Firebase
-    FirebaseApp.configure()
-
-    // Set notification delegates
+    // Set notification delegates for local notifications
     UNUserNotificationCenter.current().delegate = self
-    Messaging.messaging().delegate = self
-
-    // Register for remote notifications
-    application.registerForRemoteNotifications()
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
@@ -33,14 +24,5 @@ import FirebaseMessaging
     withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
   ) {
     completionHandler([.alert, .badge, .sound])
-  }
-
-  // Handle APNs token registration for FCM
-  override func application(
-    _ application: UIApplication,
-    didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
-  ) {
-    Messaging.messaging().apnsToken = deviceToken
-    super.application(application, didRegisterForRemoteNotificationsWithDeviceToken: deviceToken)
   }
 }

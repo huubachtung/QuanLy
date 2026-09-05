@@ -6,10 +6,6 @@
         android:name="${applicationName}"
         android:usesCleartextTraffic="true"
         android:icon="@mipmap/ic_launcher">
-        <!-- Set the default notification channel for FCM -->
-        <meta-data
-            android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="high_importance_channel" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
