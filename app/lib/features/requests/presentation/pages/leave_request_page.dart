@@ -48,11 +48,36 @@ class _LeaveRequestPageState extends State<LeaveRequestPage> {
         ? (leaveState.annualLeaveBalance - leaveState.pendingDeducts).clamp(0.0, leaveState.annualMaxDays)
         : 12.0;
 
+    // Canonical leave types order matching the real HR system
+    const canonicalLeaveOrder = [
+      'ANNUAL_LEAVE',
+      'COMPENSATORY_LEAVE',
+      'SICK_LEAVE',
+      'SUMMER_LEAVE',
+      'MARRIAGE_LEAVE',
+      'BEREAVEMENT_LEAVE',
+      'WIFE_BIRTH_SINGLE_NORMAL',
+      'WIFE_BIRTH_SINGLE_SURGERY',
+      'WIFE_BIRTH_TWINS_NORMAL',
+      'WIFE_BIRTH_TRIPLETS_NORMAL',
+      'WIFE_BIRTH_TWINS_SURGERY',
+      'ADOPTION_UNDER_6M',
+      'CONTRACEPTION_LEAVE',
+      'RECOVERY_LEAVE',
+      'HOLIDAYS_FOR_EXPATS',
+      'MILITARY_LEAVE',
+      'WIFE_MISCARRIAGE_OVER_22W',
+      'UNPAID_LEAVE',
+    ];
+
     // Build stats list from LeaveLoaded.stats or fallback to user.leaveBalances
     List<LeaveStatItem> statsList = [];
     if (leaveState is LeaveLoaded && leaveState.stats.isNotEmpty) {
       statsList = leaveState.stats.values
-          .where((s) => !s.isSpecialRequest && s.leaveType != 'OTHER')
+          .where((s) =>
+              !s.isSpecialRequest &&
+              s.leaveType != 'OTHER' &&
+              s.leaveType != 'PREVIOUS_YEAR_LEAVE')
           .toList();
     } else {
       statsList = user.leaveBalances
@@ -64,13 +89,23 @@ class _LeaveRequestPageState extends State<LeaveRequestPage> {
                 leaveType: lb.leaveType,
                 label: lb.label,
                 deductsLeave: lb.leaveType == 'ANNUAL_LEAVE',
-                max: lb.totalDays > 12 && lb.leaveType == 'ANNUAL_LEAVE' ? 12 : lb.totalDays,
+                max: lb.totalDays,
                 approved: lb.usedDays,
                 pending: lb.pendingDays,
                 remaining: lb.remainingDays,
               ))
           .toList();
     }
+
+    // Sort according to canonical list
+    statsList.sort((a, b) {
+      final idxA = canonicalLeaveOrder.indexOf(a.leaveType);
+      final idxB = canonicalLeaveOrder.indexOf(b.leaveType);
+      if (idxA != -1 && idxB != -1) return idxA.compareTo(idxB);
+      if (idxA != -1) return -1;
+      if (idxB != -1) return 1;
+      return a.label.compareTo(b.label);
+    });
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppTokens.s16),
@@ -89,7 +124,7 @@ class _LeaveRequestPageState extends State<LeaveRequestPage> {
         const SizedBox(height: AppTokens.s16),
 
         // Detailed leave stats table
-        _LeaveStatsTable(stats: statsList, isDark: isDark),
+        LeaveStatsTable(stats: statsList, isDark: isDark),
         const SizedBox(height: AppTokens.s16),
 
         // Create request button
@@ -275,11 +310,11 @@ class _LeaveStatChip extends StatelessWidget {
       );
 }
 
-class _LeaveStatsTable extends StatelessWidget {
+class LeaveStatsTable extends StatelessWidget {
   final List<LeaveStatItem> stats;
   final bool isDark;
 
-  const _LeaveStatsTable({required this.stats, required this.isDark});
+  const LeaveStatsTable({super.key, required this.stats, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -303,7 +338,6 @@ class _LeaveStatsTable extends StatelessWidget {
             child: const Row(
               children: [
                 Expanded(
-                  flex: 5,
                   child: Text('Loại đơn',
                       style: TextStyle(
                           fontSize: 12,
@@ -311,7 +345,7 @@ class _LeaveStatsTable extends StatelessWidget {
                           color: Colors.grey)),
                 ),
                 SizedBox(
-                  width: 42,
+                  width: 44,
                   child: Text('Tổng',
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -320,7 +354,7 @@ class _LeaveStatsTable extends StatelessWidget {
                           color: Colors.grey)),
                 ),
                 SizedBox(
-                  width: 58,
+                  width: 56,
                   child: Text('Đã duyệt',
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -329,7 +363,7 @@ class _LeaveStatsTable extends StatelessWidget {
                           color: Colors.grey)),
                 ),
                 SizedBox(
-                  width: 58,
+                  width: 56,
                   child: Text('Đang chờ',
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -338,7 +372,7 @@ class _LeaveStatsTable extends StatelessWidget {
                           color: Colors.grey)),
                 ),
                 SizedBox(
-                  width: 50,
+                  width: 56,
                   child: Text('Còn lại',
                       textAlign: TextAlign.right,
                       style: TextStyle(
@@ -358,9 +392,9 @@ class _LeaveStatsTable extends StatelessWidget {
             separatorBuilder: (_, __) => Divider(height: 1, color: borderColor),
             itemBuilder: (ctx, i) {
               final s = stats[i];
-              final isExhausted = s.remaining != null && s.remaining! <= 0;
-              final isAlmostOut =
-                  s.remaining != null && s.remaining! > 0 && s.remaining! <= 2;
+              final rem = s.remaining ?? (s.max > 0 ? (s.max - s.approved - s.pending) : 0.0);
+              final isExhausted = rem <= 0;
+              final isAlmostOut = rem > 0 && rem <= 2;
 
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -369,51 +403,15 @@ class _LeaveStatsTable extends StatelessWidget {
                   children: [
                     // Loại đơn + Phụ đề
                     Expanded(
-                      flex: 5,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  s.label,
-                                  style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 13,
-                                      ),
+                          Text(
+                            s.label,
+                            style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
                                 ),
-                              ),
-                              if (isExhausted && s.max == 0) ...[
-                                const SizedBox(width: 4),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.error.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: const Text('Hết',
-                                      style: TextStyle(
-                                          fontSize: 9,
-                                          color: AppColors.error,
-                                          fontWeight: FontWeight.w700)),
-                                ),
-                              ] else if (isAlmostOut) ...[
-                                const SizedBox(width: 4),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.warning.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: const Text('Sắp hết',
-                                      style: TextStyle(
-                                          fontSize: 9,
-                                          color: AppColors.warning,
-                                          fontWeight: FontWeight.w700)),
-                                ),
-                              ],
-                            ],
                           ),
                           const SizedBox(height: 2),
                           Text(
@@ -430,7 +428,7 @@ class _LeaveStatsTable extends StatelessWidget {
                     ),
                     // Tổng
                     SizedBox(
-                      width: 42,
+                      width: 44,
                       child: Text(
                         _formatDays(s.max),
                         textAlign: TextAlign.center,
@@ -439,7 +437,7 @@ class _LeaveStatsTable extends StatelessWidget {
                     ),
                     // Đã duyệt
                     SizedBox(
-                      width: 58,
+                      width: 56,
                       child: Text(
                         _formatDays(s.approved),
                         textAlign: TextAlign.center,
@@ -448,7 +446,7 @@ class _LeaveStatsTable extends StatelessWidget {
                     ),
                     // Đang chờ
                     SizedBox(
-                      width: 58,
+                      width: 56,
                       child: Text(
                         _formatDays(s.pending),
                         textAlign: TextAlign.center,
@@ -459,19 +457,54 @@ class _LeaveStatsTable extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // Còn lại
+                    // Còn lại + Badge (Hết / Sắp hết)
                     SizedBox(
-                      width: 50,
-                      child: Text(
-                        s.remaining != null ? _formatDays(s.remaining) : '—',
-                        textAlign: TextAlign.right,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          color: s.remaining == null
-                              ? Colors.grey
-                              : (s.remaining! <= 0 ? AppColors.error : AppColors.success),
-                        ),
+                      width: 56,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _formatDays(rem),
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: isExhausted
+                                  ? AppColors.error
+                                  : (isAlmostOut ? AppColors.warning : AppColors.success),
+                            ),
+                          ),
+                          if (isExhausted) ...[
+                            const SizedBox(height: 2),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: AppColors.error.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text('Hết',
+                                  style: TextStyle(
+                                      fontSize: 9,
+                                      color: AppColors.error,
+                                      fontWeight: FontWeight.w700)),
+                            ),
+                          ] else if (isAlmostOut) ...[
+                            const SizedBox(height: 2),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: AppColors.warning.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text('Sắp hết',
+                                  style: TextStyle(
+                                      fontSize: 9,
+                                      color: AppColors.warning,
+                                      fontWeight: FontWeight.w700)),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                   ],
@@ -554,14 +587,23 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
   List<LeaveType> get _leaveTypes => _group == 'leave'
       ? [
           LeaveType.annualLeave,
-          LeaveType.previousYearLeave,
           LeaveType.compensatoryLeave,
           LeaveType.sickLeave,
           LeaveType.summerLeave,
-          LeaveType.unpaidLeave,
           LeaveType.marriageLeave,
           LeaveType.bereavementLeave,
-          LeaveType.wifeBirthSingleNormal
+          LeaveType.wifeBirthSingleNormal,
+          LeaveType.wifeBirthSingleSurgery,
+          LeaveType.wifeBirthTwinsNormal,
+          LeaveType.wifeBirthTriplets,
+          LeaveType.wifeBirthTwinsSurgery,
+          LeaveType.adoptionUnder6m,
+          LeaveType.contraceptionLeave,
+          LeaveType.recoveryLeave,
+          LeaveType.holidaysForExpats,
+          LeaveType.militaryLeave,
+          LeaveType.wifeMiscarriageOver22w,
+          LeaveType.unpaidLeave,
         ]
       : [
           LeaveType.shiftChange,

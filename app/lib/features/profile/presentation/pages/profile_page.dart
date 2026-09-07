@@ -354,8 +354,55 @@ class _LeaveBalancesSection extends StatelessWidget {
     required this.ctx,
   });
 
+  static String _formatDays(num? val) {
+    if (val == null) return '0';
+    if (val % 1 == 0) return val.toInt().toString();
+    return val.toString();
+  }
+
   @override
   Widget build(BuildContext context) {
+    const canonicalLeaveOrder = [
+      'ANNUAL_LEAVE',
+      'COMPENSATORY_LEAVE',
+      'SICK_LEAVE',
+      'SUMMER_LEAVE',
+      'MARRIAGE_LEAVE',
+      'BEREAVEMENT_LEAVE',
+      'WIFE_BIRTH_SINGLE_NORMAL',
+      'WIFE_BIRTH_SINGLE_SURGERY',
+      'WIFE_BIRTH_TWINS_NORMAL',
+      'WIFE_BIRTH_TRIPLETS_NORMAL',
+      'WIFE_BIRTH_TWINS_SURGERY',
+      'ADOPTION_UNDER_6M',
+      'CONTRACEPTION_LEAVE',
+      'RECOVERY_LEAVE',
+      'HOLIDAYS_FOR_EXPATS',
+      'MILITARY_LEAVE',
+      'WIFE_MISCARRIAGE_OVER_22W',
+      'UNPAID_LEAVE',
+    ];
+
+    final filtered = leaveBalances.where((b) =>
+        b.leaveType != 'PREVIOUS_YEAR_LEAVE' &&
+        b.leaveType != 'OTHER' &&
+        b.leaveType != 'SHIFT_CHANGE' &&
+        b.leaveType != 'ONLINE_WORK' &&
+        b.leaveType != 'LATE_PERMISSION' &&
+        b.leaveType != 'EARLY_LEAVE_REQUEST' &&
+        b.label != 'Lý do khác').toList();
+
+    filtered.sort((a, b) {
+      final idxA = canonicalLeaveOrder.indexOf(a.leaveType);
+      final idxB = canonicalLeaveOrder.indexOf(b.leaveType);
+      if (idxA != -1 && idxB != -1) return idxA.compareTo(idxB);
+      if (idxA != -1) return -1;
+      if (idxB != -1) return 1;
+      return a.label.compareTo(b.label);
+    });
+
+    if (filtered.isEmpty) return const SizedBox.shrink();
+
     return Container(
       padding: const EdgeInsets.all(AppTokens.s16),
       decoration: BoxDecoration(
@@ -370,9 +417,20 @@ class _LeaveBalancesSection extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Hạn mức ngày phép', style: Theme.of(ctx).textTheme.titleSmall),
-              Text(
-                '${leaveBalances.length} loại',
-                style: const TextStyle(fontSize: 12, color: AppColors.info, fontWeight: FontWeight.w600),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: AppTokens.s8, vertical: AppTokens.s4),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryBlue.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppTokens.rMicro),
+                ),
+                child: Text(
+                  '${filtered.length} loại',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.primaryBlue,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ],
           ),
@@ -380,18 +438,24 @@ class _LeaveBalancesSection extends StatelessWidget {
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: leaveBalances.length,
-            separatorBuilder: (_, __) => const Divider(height: 16, thickness: 0.5),
+            itemCount: filtered.length,
+            separatorBuilder: (_, __) => Divider(
+              height: AppTokens.s16,
+              thickness: 0.5,
+              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+            ),
             itemBuilder: (context, index) {
-              final bal = leaveBalances[index];
-              final total = bal.totalDays;
-              final used = bal.usedDays;
-              final remaining = bal.remainingDays;
-              final totalStr = total % 1 == 0 ? total.toInt().toString() : total.toString();
-              final usedStr = used % 1 == 0 ? used.toInt().toString() : used.toString();
-              final remStr = remaining % 1 == 0 ? remaining.toInt().toString() : remaining.toString();
+              final bal = filtered[index];
+              final isAnnual = bal.leaveType == 'ANNUAL_LEAVE';
+              final totalStr = _formatDays(bal.totalDays);
+              final usedStr = _formatDays(bal.usedDays);
+              final rem = bal.remainingDays;
+              final remStr = _formatDays(rem);
+              final isExhausted = rem <= 0;
+              final isAlmostOut = rem > 0 && rem <= 2;
 
               return Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
                     child: Column(
@@ -399,34 +463,85 @@ class _LeaveBalancesSection extends StatelessWidget {
                       children: [
                         Text(
                           bal.label,
-                          style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+                          style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Đã dùng: $usedStr / $totalStr ngày',
-                          style: TextStyle(fontSize: 12, color: Theme.of(ctx).textTheme.bodySmall?.color),
+                          isAnnual ? 'Trừ phép tháng' : 'Không trừ phép tháng',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isAnnual
+                                ? (isDark ? Colors.blue.shade300 : AppColors.primaryBlue)
+                                : (isDark ? Colors.white38 : Colors.grey.shade600),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Tổng: $totalStr  •  Đã duyệt: $usedStr${bal.pendingDays > 0 ? "  •  Chờ: ${_formatDays(bal.pendingDays)}" : ""}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.white60 : Colors.grey.shade600,
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: remaining > 0
-                          ? AppColors.success.withValues(alpha: 0.15)
-                          : Colors.grey.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      'Còn $remStr',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: remaining > 0 ? AppColors.success : Colors.grey,
+                  const SizedBox(width: AppTokens.s8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Còn $remStr',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: isExhausted
+                              ? AppColors.error
+                              : (isAlmostOut ? AppColors.warning : AppColors.success),
+                        ),
                       ),
-                    ),
+                      if (isExhausted) ...[
+                        const SizedBox(height: 2),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: AppColors.error.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'Hết',
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: AppColors.error,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ] else if (isAlmostOut) ...[
+                        const SizedBox(height: 2),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: AppColors.warning.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'Sắp hết',
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: AppColors.warning,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               );

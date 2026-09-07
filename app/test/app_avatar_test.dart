@@ -10,7 +10,8 @@ import 'package:app/features/profile/presentation/pages/profile_page.dart';
 import 'package:app/core/providers/theme_provider.dart';
 import 'package:provider/provider.dart';
 
-class MockAuthBlocForAvatar extends Bloc<AuthEvent, AuthState> implements AuthBloc {
+class MockAuthBlocForAvatar extends Bloc<AuthEvent, AuthState>
+    implements AuthBloc {
   MockAuthBlocForAvatar(super.initialState);
 
   @override
@@ -39,17 +40,21 @@ void main() {
 
     test('resolveAvatarUrl: Relative path starting with /', () {
       const relative = '/uploads/avatars/avatar1.png';
-      expect(AppAvatar.resolveAvatarUrl(relative), 'https://chaos.io.vn/uploads/avatars/avatar1.png');
+      expect(AppAvatar.resolveAvatarUrl(relative),
+          'https://chaos.io.vn/uploads/avatars/avatar1.png');
     });
 
     test('resolveAvatarUrl: Relative path without /', () {
       const relative = 'uploads/avatars/avatar2.png';
-      expect(AppAvatar.resolveAvatarUrl(relative), 'https://chaos.io.vn/uploads/avatars/avatar2.png');
+      expect(AppAvatar.resolveAvatarUrl(relative),
+          'https://chaos.io.vn/uploads/avatars/avatar2.png');
     });
 
     test('resolveAvatarUrl: JSON Cloudinary object string', () {
-      const jsonStr = '{"url": "https://res.cloudinary.com/demo/image/sample.jpg", "public_id": "123"}';
-      expect(AppAvatar.resolveAvatarUrl(jsonStr), 'https://res.cloudinary.com/demo/image/sample.jpg');
+      const jsonStr =
+          '{"url": "https://res.cloudinary.com/demo/image/sample.jpg", "public_id": "123"}';
+      expect(AppAvatar.resolveAvatarUrl(jsonStr),
+          'https://res.cloudinary.com/demo/image/sample.jpg');
     });
 
     test('resolveAvatarUrl: Data URI', () {
@@ -58,7 +63,9 @@ void main() {
     });
 
     test('isSvg detection', () {
-      expect(AppAvatar.isSvg('https://api.dicebear.com/7.x/bottts/svg?seed=Felix'), isTrue);
+      expect(
+          AppAvatar.isSvg('https://api.dicebear.com/7.x/bottts/svg?seed=Felix'),
+          isTrue);
       expect(AppAvatar.isSvg('https://example.com/user.svg'), isTrue);
       expect(AppAvatar.isSvg('https://example.com/user.svg?v=1.0'), isTrue);
       expect(AppAvatar.isSvg('data:image/svg+xml;utf8,<svg></svg>'), isTrue);
@@ -141,13 +148,14 @@ void main() {
   });
 
   group('ProfilePage with BebugLog.md Data Rendering', () {
-    testWidgets('ProfilePage displays accurate fields from BebugLog', (WidgetTester tester) async {
+    testWidgets('ProfilePage displays accurate fields from BebugLog',
+        (WidgetTester tester) async {
       final user = UserModel.fromJson(const {
         "_id": "6a32b74f6c31356209a1dc1b",
         "username": "tungns",
-        "department": "69f095c8e0681e964c7e6b27",
+        "department": "lada123kdsn211bnbxz",
         "displayName": "Nguyễn Sơn Tùng",
-        "email": "tung912n@gmail.com",
+        "email": "xxxxxxxx@gmail.com",
         "annualLeaveBalance": 12,
         "employeeCode": "31",
         "role": "member",
@@ -184,7 +192,7 @@ void main() {
 
       expect(find.text('Nguyễn Sơn Tùng'), findsOneWidget);
       expect(find.text('Mã NV: 31'), findsOneWidget);
-      expect(find.text('tung912n@gmail.com'), findsOneWidget);
+      expect(find.text('xxxxxxxx@gmail.com'), findsOneWidget);
       expect(find.text('12 ngày'), findsOneWidget);
       expect(find.text('Hạn mức ngày phép'), findsOneWidget);
       expect(find.text('Nghỉ phép năm'), findsOneWidget);

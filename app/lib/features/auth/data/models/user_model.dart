@@ -262,9 +262,9 @@ class LeaveBalanceModel extends LeaveBalanceEntity {
       case 'COMPENSATORY_LEAVE':
         return 'Nghỉ bù';
       case 'SICK_LEAVE':
-        return 'Nghỉ ốm có giấy bệnh viện';
+        return 'Nghỉ ốm';
       case 'SUMMER_LEAVE':
-        return 'Nghỉ mát';
+        return 'Nghỉ hè';
       case 'UNPAID_LEAVE':
         return 'Nghỉ không lương';
       case 'MARRIAGE_LEAVE':
@@ -272,27 +272,27 @@ class LeaveBalanceModel extends LeaveBalanceEntity {
       case 'BEREAVEMENT_LEAVE':
         return 'Nghỉ tang';
       case 'WIFE_BIRTH_SINGLE_NORMAL':
-        return 'Vợ sinh 1 (thường)';
+        return 'Nghỉ vợ sinh thường (đơn)';
       case 'WIFE_BIRTH_SINGLE_SURGERY':
-        return 'Vợ sinh 1 (mổ)';
+        return 'Nghỉ vợ sinh mổ (đơn)';
       case 'WIFE_BIRTH_TWINS_NORMAL':
-        return 'Vợ sinh đôi (thường)';
+        return 'Nghỉ vợ sinh thường (đôi)';
       case 'WIFE_BIRTH_TWINS_SURGERY':
-        return 'Vợ sinh đôi (mổ)';
+        return 'Nghỉ vợ sinh mổ (đôi/ba)';
       case 'WIFE_BIRTH_TRIPLETS_NORMAL':
-        return 'Vợ sinh ba (thường)';
+        return 'Nghỉ vợ sinh thường (ba)';
       case 'ADOPTION_UNDER_6M':
-        return 'Nhận con nuôi < 6 tháng';
+        return 'Nhận con nuôi dưới 6 tháng';
       case 'CONTRACEPTION_LEAVE':
-        return 'Thực hiện biện pháp tránh thai';
+        return 'Nghỉ tránh thai';
       case 'RECOVERY_LEAVE':
-        return 'Dưỡng sức sau ốm đau';
+        return 'Nghỉ phục hồi sức khoẻ';
       case 'HOLIDAYS_FOR_EXPATS':
-        return 'Nghỉ lễ cho người nước ngoài';
+        return 'Nghỉ lễ người nước ngoài';
       case 'MILITARY_LEAVE':
-        return 'Khám nghĩa vụ quân sự';
+        return 'Nghỉ huấn luyện quân sự';
       case 'WIFE_MISCARRIAGE_OVER_22W':
-        return 'Vợ sẩy thai ≥ 22 tuần';
+        return 'Nghỉ sẩy thai ≥22 tuần';
       case 'SHIFT_CHANGE':
         return 'Đổi ca làm việc';
       case 'ONLINE_WORK':

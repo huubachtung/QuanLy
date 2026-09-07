@@ -197,22 +197,22 @@ extension LeaveTypeExt on LeaveType {
       case LeaveType.annualLeave: return 'Nghỉ phép năm';
       case LeaveType.previousYearLeave: return 'Nghỉ phép năm trước';
       case LeaveType.compensatoryLeave: return 'Nghỉ bù';
-      case LeaveType.sickLeave: return 'Nghỉ ốm có giấy bệnh viện';
-      case LeaveType.summerLeave: return 'Nghỉ mát';
+      case LeaveType.sickLeave: return 'Nghỉ ốm';
+      case LeaveType.summerLeave: return 'Nghỉ hè';
       case LeaveType.unpaidLeave: return 'Nghỉ không lương';
       case LeaveType.marriageLeave: return 'Nghỉ kết hôn';
       case LeaveType.bereavementLeave: return 'Nghỉ tang';
-      case LeaveType.wifeBirthSingleNormal: return 'Vợ sinh 1 (thường)';
-      case LeaveType.wifeBirthSingleSurgery: return 'Vợ sinh 1 (mổ)';
-      case LeaveType.wifeBirthTwinsNormal: return 'Vợ sinh đôi (thường)';
-      case LeaveType.wifeBirthTwinsSurgery: return 'Vợ sinh đôi (mổ)';
-      case LeaveType.wifeBirthTriplets: return 'Vợ sinh ba (thường)';
-      case LeaveType.adoptionUnder6m: return 'Nhận con nuôi < 6 tháng';
-      case LeaveType.contraceptionLeave: return 'Thực hiện biện pháp tránh thai';
-      case LeaveType.recoveryLeave: return 'Dưỡng sức sau ốm đau';
-      case LeaveType.holidaysForExpats: return 'Nghỉ lễ cho người nước ngoài';
-      case LeaveType.militaryLeave: return 'Khám nghĩa vụ quân sự';
-      case LeaveType.wifeMiscarriageOver22w: return 'Vợ sẩy thai ≥ 22 tuần';
+      case LeaveType.wifeBirthSingleNormal: return 'Nghỉ vợ sinh thường (đơn)';
+      case LeaveType.wifeBirthSingleSurgery: return 'Nghỉ vợ sinh mổ (đơn)';
+      case LeaveType.wifeBirthTwinsNormal: return 'Nghỉ vợ sinh thường (đôi)';
+      case LeaveType.wifeBirthTwinsSurgery: return 'Nghỉ vợ sinh mổ (đôi/ba)';
+      case LeaveType.wifeBirthTriplets: return 'Nghỉ vợ sinh thường (ba)';
+      case LeaveType.adoptionUnder6m: return 'Nhận con nuôi dưới 6 tháng';
+      case LeaveType.contraceptionLeave: return 'Nghỉ tránh thai';
+      case LeaveType.recoveryLeave: return 'Nghỉ phục hồi sức khoẻ';
+      case LeaveType.holidaysForExpats: return 'Nghỉ lễ người nước ngoài';
+      case LeaveType.militaryLeave: return 'Nghỉ huấn luyện quân sự';
+      case LeaveType.wifeMiscarriageOver22w: return 'Nghỉ sẩy thai ≥22 tuần';
       case LeaveType.shiftChange: return 'Đổi ca làm việc';
       case LeaveType.onlineWork: return 'Làm việc Online (WFH)';
       case LeaveType.latePermission: return 'Xin đi muộn';
@@ -228,25 +228,7 @@ extension LeaveTypeExt on LeaveType {
       this == LeaveType.earlyLeaveRequest;
 
   bool get deductsAnnualLeave {
-    return [
-      LeaveType.annualLeave,
-      LeaveType.previousYearLeave,
-      LeaveType.compensatoryLeave,
-      LeaveType.sickLeave,
-      LeaveType.summerLeave,
-      LeaveType.wifeBirthSingleNormal,
-      LeaveType.wifeBirthSingleSurgery,
-      LeaveType.wifeBirthTwinsNormal,
-      LeaveType.wifeBirthTriplets,
-      LeaveType.wifeBirthTwinsSurgery,
-      LeaveType.adoptionUnder6m,
-      LeaveType.contraceptionLeave,
-      LeaveType.recoveryLeave,
-      LeaveType.holidaysForExpats,
-      LeaveType.militaryLeave,
-      LeaveType.wifeMiscarriageOver22w,
-      LeaveType.other,
-    ].contains(this);
+    return this == LeaveType.annualLeave;
   }
 
   String get apiValue {
@@ -362,14 +344,20 @@ class LeaveStatItem {
       leaveType == 'EARLY_LEAVE_REQUEST';
 
   factory LeaveStatItem.fromJson(String key, Map<String, dynamic> json) {
+    final maxVal = (json['max'] as num?)?.toDouble() ?? 0.0;
+    final approvedVal = (json['approved'] as num?)?.toDouble() ?? 0.0;
+    final pendingVal = (json['pending'] as num?)?.toDouble() ?? 0.0;
+    final rawRemaining = (json['remaining'] as num?)?.toDouble();
+    final remainingVal = rawRemaining ?? (maxVal > 0 ? (maxVal - approvedVal - pendingVal) : 0.0);
+
     return LeaveStatItem(
       leaveType: key,
       label: json['label']?.toString() ?? key,
       deductsLeave: json['deductsLeave'] == true,
-      max: (json['max'] as num?)?.toDouble() ?? 0.0,
-      approved: (json['approved'] as num?)?.toDouble() ?? 0.0,
-      pending: (json['pending'] as num?)?.toDouble() ?? 0.0,
-      remaining: (json['remaining'] as num?)?.toDouble(),
+      max: maxVal,
+      approved: approvedVal,
+      pending: pendingVal,
+      remaining: remainingVal,
       useSharedPool: json['useSharedPool'] == true,
       limitUnit: json['limitUnit']?.toString(),
       govMandated: json['govMandated'] == true,
