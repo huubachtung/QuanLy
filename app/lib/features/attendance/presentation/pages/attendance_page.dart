@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:app/core/utils/app_colors.dart';
+import 'package:app/core/utils/app_tokens.dart';
 import '../../../../core/models/attendance_model.dart';
 import '../bloc/attendance_bloc.dart';
 import '../bloc/attendance_event.dart';
@@ -58,7 +59,12 @@ class _AttendancePageState extends State<AttendancePage> {
           children: [
             // Month Picker Bar
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              padding: const EdgeInsets.fromLTRB(
+                AppTokens.s16,
+                AppTokens.s12,
+                AppTokens.s16,
+                AppTokens.s8,
+              ),
               child: Row(
                 children: [
                   MonthYearPicker(
@@ -72,22 +78,32 @@ class _AttendancePageState extends State<AttendancePage> {
                   ),
                   const Spacer(),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTokens.s12,
+                      vertical: AppTokens.s8,
+                    ),
                     decoration: BoxDecoration(
                       color: Theme.of(context)
                           .colorScheme
                           .primary
-                          .withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
+                          .withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(AppTokens.rInput),
+                      border: Border.all(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.2),
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.fingerprint_rounded,
-                            size: 18,
-                            color: Theme.of(context).colorScheme.primary),
-                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.fingerprint_rounded,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: AppTokens.s4),
                         Text(
                           'Tháng $currentMonth/$currentYear',
                           style: TextStyle(
@@ -107,17 +123,17 @@ class _AttendancePageState extends State<AttendancePage> {
               Expanded(
                 child: Center(
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(AppTokens.s24),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Icon(Icons.error_outline_rounded,
                             size: 48, color: AppColors.error),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: AppTokens.s12),
                         Text(state.message,
                             textAlign: TextAlign.center,
                             style: Theme.of(context).textTheme.bodyMedium),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppTokens.s16),
                         ElevatedButton.icon(
                           onPressed: () {
                             context.read<AttendanceBloc>().add(
@@ -136,7 +152,7 @@ class _AttendancePageState extends State<AttendancePage> {
             else if (isLoading || summary == null)
               Expanded(
                 child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppTokens.s16),
                   itemCount: 4,
                   itemBuilder: (_, __) => const CardShimmer(),
                 ),
@@ -144,7 +160,12 @@ class _AttendancePageState extends State<AttendancePage> {
             else
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppTokens.s16,
+                    0,
+                    AppTokens.s16,
+                    AppTokens.s24,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -158,7 +179,7 @@ class _AttendancePageState extends State<AttendancePage> {
                             setState(() => _isExpanded = !_isExpanded),
                       ),
 
-                      const SizedBox(height: 16),
+                      const SizedBox(height: AppTokens.s16),
 
                       // 2. BẢNG CHI TIẾT LỊCH SỬ CHẤM CÔNG THEO NGÀY
                       if (_isExpanded) ...[
@@ -215,24 +236,17 @@ class _EmployeeMonthlySummaryCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkCard : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: isDark ? AppColors.darkCard : AppColors.lightCard,
+        borderRadius: BorderRadius.circular(AppTokens.rCard),
         border: Border.all(
           color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Column(
         children: [
           // Header info: Nhân viên, Mã NV, Phòng ban, nút Mở rộng
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppTokens.s16),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -514,29 +528,27 @@ class _DetailedAttendanceSection extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkCard : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: isDark ? AppColors.darkCard : AppColors.lightCard,
+        borderRadius: BorderRadius.circular(AppTokens.rCard),
         border: Border.all(
             color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header Tiêu Đề Bảng
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+            padding: const EdgeInsets.fromLTRB(
+              AppTokens.s16,
+              AppTokens.s16,
+              AppTokens.s16,
+              AppTokens.s12,
+            ),
             child: Row(
               children: [
                 Icon(Icons.calendar_month_rounded,
                     size: 18, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppTokens.s8),
                 Text(
                   'Lịch sử quét vân tay (Tháng $currentMonth/$currentYear)',
                   style: const TextStyle(
@@ -816,10 +828,12 @@ class _DetailedAttendanceSection extends StatelessWidget {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppTokens.s24),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkCard : Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          color: isDark ? AppColors.darkCard : AppColors.lightCard,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppTokens.rCard),
+          ),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

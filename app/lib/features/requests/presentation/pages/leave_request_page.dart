@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:app/core/utils/app_colors.dart';
+import 'package:app/core/utils/app_tokens.dart';
 import '../../../../core/models/leave_request_model.dart';
 import '../../../../core/models/user_model.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
@@ -72,24 +73,24 @@ class _LeaveRequestPageState extends State<LeaveRequestPage> {
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppTokens.s16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // Annual leave balance overview
         Text('Quỹ ngày nghỉ', style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 4),
+        const SizedBox(height: AppTokens.s4),
         Text('Thống kê số ngày đã nghỉ và còn lại của bạn',
             style: TextStyle(
                 fontSize: 13,
                 color: isDark ? Colors.white60 : Colors.grey.shade600)),
-        const SizedBox(height: 14),
+        const SizedBox(height: AppTokens.s12),
 
         // Annual leave card
         _buildAnnualLeaveCard(context, user, isDark, leaveState),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppTokens.s16),
 
         // Detailed leave stats table
         _LeaveStatsTable(stats: statsList, isDark: isDark),
-        const SizedBox(height: 20),
+        const SizedBox(height: AppTokens.s16),
 
         // Create request button
         SizedBox(
@@ -99,9 +100,12 @@ class _LeaveRequestPageState extends State<LeaveRequestPage> {
               icon: const Icon(Icons.add_circle_outline_rounded),
               label: const Text('Tạo đơn mới'),
               style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14)),
+                  padding: const EdgeInsets.symmetric(vertical: AppTokens.s12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppTokens.rInput),
+                  )),
             )),
-        const SizedBox(height: 20),
+        const SizedBox(height: AppTokens.s24),
 
         // Recent requests
         Row(children: [
@@ -176,19 +180,13 @@ class _LeaveRequestPageState extends State<LeaveRequestPage> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(AppTokens.s16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
             colors: [AppColors.primaryBlue, Color(0xFF1E4A9A)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-              color: AppColors.primaryBlue.withValues(alpha: 0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4))
-        ],
+        borderRadius: BorderRadius.circular(AppTokens.rCard),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
@@ -198,36 +196,36 @@ class _LeaveRequestPageState extends State<LeaveRequestPage> {
           StatusBadge(
               label: badgeLabel, color: badgeColor, textColor: badgeColor),
           if (pendingDays > 0) ...[
-            const SizedBox(width: 8),
+            const SizedBox(width: AppTokens.s8),
             StatusBadge(
                 label: '+${_formatDays(pendingDays)} chờ duyệt',
                 color: AppColors.gold),
           ],
         ]),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppTokens.s12),
         Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
           Text(_formatDays(remaining),
               style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 40,
-                  fontWeight: FontWeight.w800)),
-          const SizedBox(width: 4),
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700)),
+          const SizedBox(width: AppTokens.s4),
           Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(bottom: 4),
               child: Text('/ ${_formatDays(totalDays)} ngày',
                   style: const TextStyle(color: Colors.white70, fontSize: 13))),
         ]),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppTokens.s12),
         Row(children: [
           _LeaveStatChip('Đã dùng', _formatDays(usedDays),
-              Colors.white.withValues(alpha: 0.25)),
-          const SizedBox(width: 8),
+              Colors.white.withValues(alpha: 0.2)),
+          const SizedBox(width: AppTokens.s8),
           _LeaveStatChip(
-              'Còn lại', _formatDays(remaining), Colors.white.withValues(alpha: 0.25)),
-          const SizedBox(width: 8),
+              'Còn lại', _formatDays(remaining), Colors.white.withValues(alpha: 0.2)),
+          const SizedBox(width: AppTokens.s8),
           if (pendingDays > 0)
             _LeaveStatChip('Chờ duyệt', _formatDays(pendingDays),
-                AppColors.gold.withValues(alpha: 0.3)),
+                AppColors.gold.withValues(alpha: 0.25)),
         ]),
       ]),
     );
@@ -257,14 +255,19 @@ class _LeaveStatChip extends StatelessWidget {
   const _LeaveStatChip(this.label, this.value, this.bg);
   @override
   Widget build(BuildContext ctx) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration:
-            BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTokens.s8,
+          vertical: AppTokens.s4,
+        ),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(AppTokens.rMicro),
+        ),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Text(value,
               style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 16,
+                  fontSize: 15,
                   fontWeight: FontWeight.w700)),
           Text(label,
               style: const TextStyle(color: Colors.white70, fontSize: 10)),
@@ -490,11 +493,11 @@ class _RequestCard extends StatelessWidget {
   @override
   Widget build(BuildContext ctx) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: AppTokens.s8),
+      padding: const EdgeInsets.all(AppTokens.s16),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkCard : AppColors.lightCard,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppTokens.rCard),
         border: Border.all(
             color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
       ),
@@ -506,7 +509,7 @@ class _RequestCard extends StatelessWidget {
               style: Theme.of(ctx).textTheme.titleSmall,
               maxLines: 1,
               overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppTokens.s4),
           Text('${request.fromDate} → ${request.toDate}',
               style: Theme.of(ctx).textTheme.bodySmall),
         ])),
@@ -573,10 +576,15 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
       _selectedType == LeaveType.shiftChange;
 
   String? get _computedStartTime {
-    if (_selectedType == LeaveType.shiftChange) return _shiftStartTime;
-    if (_selectedType == LeaveType.latePermission)
+    if (_selectedType == LeaveType.shiftChange) {
+      return _shiftStartTime;
+    }
+    if (_selectedType == LeaveType.latePermission) {
       return widget.user.workStartTime;
-    if (_selectedType == LeaveType.earlyLeaveRequest) return _earlyTime;
+    }
+    if (_selectedType == LeaveType.earlyLeaveRequest) {
+      return _earlyTime;
+    }
     switch (_duration) {
       case LeaveDuration.morning:
       case LeaveDuration.fullDay:
@@ -587,11 +595,15 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
   }
 
   String? get _computedEndTime {
-    if (_selectedType == LeaveType.shiftChange)
+    if (_selectedType == LeaveType.shiftChange) {
       return _shiftEndTime.isNotEmpty ? _shiftEndTime : null;
-    if (_selectedType == LeaveType.latePermission) return _lateTime;
-    if (_selectedType == LeaveType.earlyLeaveRequest)
+    }
+    if (_selectedType == LeaveType.latePermission) {
+      return _lateTime;
+    }
+    if (_selectedType == LeaveType.earlyLeaveRequest) {
       return widget.user.workEndTime;
+    }
     switch (_duration) {
       case LeaveDuration.afternoon:
       case LeaveDuration.fullDay:
@@ -604,10 +616,14 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
   double _calculateWorkingDays(
       DateTime start, DateTime end, LeaveDuration duration) {
     if (duration == LeaveDuration.morning ||
-        duration == LeaveDuration.afternoon) return 0.5;
+        duration == LeaveDuration.afternoon) {
+      return 0.5;
+    }
     final s = DateTime(start.year, start.month, start.day);
     final e = DateTime(end.year, end.month, end.day);
-    if (s.isAfter(e)) return 0;
+    if (s.isAfter(e)) {
+      return 0;
+    }
 
     int count = 0;
     DateTime cur = s;
@@ -695,12 +711,14 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
         minChildSize: 0.5,
         builder: (_, ctrl) => Container(
           decoration: BoxDecoration(
-            color: widget.isDark ? AppColors.darkCard : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            color: widget.isDark ? AppColors.darkCard : AppColors.lightCard,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(AppTokens.rCard),
+            ),
           ),
           child: ListView(
               controller: ctrl,
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(AppTokens.s24),
               children: [
                 Center(
                     child: Container(
@@ -711,10 +729,10 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
                                 ? AppColors.darkBorder
                                 : AppColors.lightBorder,
                             borderRadius: BorderRadius.circular(2)))),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppTokens.s16),
                 Text('Tạo đơn mới',
                     style: Theme.of(context).textTheme.headlineMedium),
-                const SizedBox(height: 20),
+                const SizedBox(height: AppTokens.s16),
                 // Group selector
                 Row(children: [
                   Expanded(
@@ -725,10 +743,11 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
                           () => setState(() {
                                 _group = 'leave';
                                 _selectedType = LeaveType.annualLeave;
-                                if (_duration != LeaveDuration.fullDay)
+                                if (_duration != LeaveDuration.fullDay) {
                                   _toDate = _fromDate;
+                                }
                               }))),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppTokens.s8),
                   Expanded(
                       child: _GroupBtn(
                           'Đơn đặc biệt',
@@ -741,13 +760,13 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
                                 _duration = LeaveDuration.fullDay;
                               }))),
                 ]),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppTokens.s16),
                 // Type selector
                 Text('Loại đơn', style: Theme.of(context).textTheme.titleSmall),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppTokens.s8),
                 Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                    spacing: AppTokens.s8,
+                    runSpacing: AppTokens.s8,
                     children: _leaveTypes
                         .map((t) => GestureDetector(
                             onTap: () => setState(() {
@@ -765,7 +784,7 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
                                 color: _selectedType == t
                                     ? AppColors.primaryBlue
                                     : Colors.transparent,
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(AppTokens.rMicro),
                                 border: Border.all(
                                     color: _selectedType == t
                                         ? AppColors.primaryBlue
@@ -782,7 +801,7 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
                                           : null)),
                             )))
                         .toList()),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppTokens.s16),
                 // Date / Time fields
                 if (!_isTimeInput) ...[
                   Row(children: [
@@ -798,7 +817,7 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
                                     _toDate = d;
                                   }
                                 }))),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppTokens.s12),
                     Expanded(
                         child: _DateField(
                             'Đến ngày',
@@ -810,20 +829,21 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
                                   }
                                 }))),
                   ]),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppTokens.s12),
                   if (!_selectedType.isSpecialRequest ||
                       _selectedType == LeaveType.onlineWork) ...[
                     Text('Thời lượng',
                         style: Theme.of(context).textTheme.titleSmall),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppTokens.s8),
                     Row(
                         children: LeaveDuration.values
                             .map((d) => Expanded(
                                 child: GestureDetector(
                                     onTap: () => setState(() {
                                           _duration = d;
-                                          if (d != LeaveDuration.fullDay)
+                                          if (d != LeaveDuration.fullDay) {
                                             _toDate = _fromDate;
+                                          }
                                         }),
                                     child: AnimatedContainer(
                                       duration:
@@ -835,7 +855,7 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
                                         color: _duration == d
                                             ? AppColors.primaryBlue
                                             : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(10),
+                                        borderRadius: BorderRadius.circular(AppTokens.rMicro),
                                         border: Border.all(
                                             color: _duration == d
                                                 ? AppColors.primaryBlue
@@ -853,7 +873,7 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
                                                   : null)),
                                     ))))
                             .toList()),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppTokens.s12),
                   ],
                 ] else ...[
                   _DateField(
@@ -994,7 +1014,7 @@ class _GroupBtn extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
           decoration: BoxDecoration(
             color: selected ? AppColors.primaryBlue : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(AppTokens.rInput),
             border: Border.all(
                 color: selected ? AppColors.primaryBlue : AppColors.darkBorder),
           ),

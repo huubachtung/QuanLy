@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:app/core/utils/app_colors.dart';
+import 'package:app/core/utils/app_tokens.dart';
 import '../../../../core/models/project_model.dart';
 import '../bloc/projects_bloc.dart';
 import '../bloc/projects_event.dart';
@@ -125,21 +126,21 @@ class _ProjectListPageState extends State<ProjectListPage> with SingleTickerProv
   Widget _buildScopeSelector(BuildContext context, int myCount, int totalCount) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+      padding: const EdgeInsets.fromLTRB(AppTokens.s16, AppTokens.s8, AppTokens.s16, AppTokens.s4),
       child: Row(children: [
         Expanded(
           child: GestureDetector(
             onTap: () => setState(() => _onlyMyProjects = true),
             child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(vertical: AppTokens.s8),
               decoration: BoxDecoration(
                 color: _onlyMyProjects
-                    ? AppColors.primaryBlue
+                    ? (isDark ? AppColors.primaryLight : AppColors.primaryBlue)
                     : (isDark ? AppColors.darkCard : AppColors.lightCard),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(AppTokens.rInput),
                 border: Border.all(
                   color: _onlyMyProjects
-                      ? AppColors.primaryBlue
+                      ? (isDark ? AppColors.primaryLight : AppColors.primaryBlue)
                       : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
                 ),
               ),
@@ -156,20 +157,20 @@ class _ProjectListPageState extends State<ProjectListPage> with SingleTickerProv
             ),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: AppTokens.s8),
         Expanded(
           child: GestureDetector(
             onTap: () => setState(() => _onlyMyProjects = false),
             child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(vertical: AppTokens.s8),
               decoration: BoxDecoration(
                 color: !_onlyMyProjects
-                    ? AppColors.primaryBlue
+                    ? (isDark ? AppColors.primaryLight : AppColors.primaryBlue)
                     : (isDark ? AppColors.darkCard : AppColors.lightCard),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(AppTokens.rInput),
                 border: Border.all(
                   color: !_onlyMyProjects
-                      ? AppColors.primaryBlue
+                      ? (isDark ? AppColors.primaryLight : AppColors.primaryBlue)
                       : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
                 ),
               ),
@@ -193,41 +194,41 @@ class _ProjectListPageState extends State<ProjectListPage> with SingleTickerProv
   Widget _buildNavShortcuts(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.fromLTRB(AppTokens.s16, AppTokens.s12, AppTokens.s16, 0),
       child: Row(children: [
-        Expanded(child: _ShortcutBtn('Công việc', Icons.task_alt_rounded, () => context.push('/tasks'), isDark)),
-        const SizedBox(width: 8),
+        Expanded(child: _ShortcutBtn('Công việc', Icons.assignment_outlined, () => context.push('/tasks'), isDark)),
+        const SizedBox(width: AppTokens.s8),
         Expanded(child: _ShortcutBtn('Timeline', Icons.timeline_rounded, () => context.push('/timeline'), isDark)),
       ]),
     );
   }
 
   Widget _buildProjectStats(BuildContext context, int inProg, int todo, int done) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.fromLTRB(AppTokens.s16, AppTokens.s12, AppTokens.s16, 0),
+      padding: const EdgeInsets.all(AppTokens.s16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.primaryBlue, Color(0xFF1E4A9A)],
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: AppColors.primaryBlue.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))],
+        color: isDark ? AppColors.darkCardElevated : AppColors.lightCardElevated,
+        borderRadius: BorderRadius.circular(AppTokens.rCard),
+        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
       ),
       child: Row(children: [
-        Expanded(child: _StatItem(label: 'Đang làm', value: '$inProg', color: AppColors.gold)),
-        _VertDivider(),
-        Expanded(child: _StatItem(label: 'Chưa làm', value: '$todo', color: Colors.white70)),
-        _VertDivider(),
-        Expanded(child: _StatItem(label: 'Hoàn thành', value: '$done', color: AppColors.success)),
+        Expanded(child: _StatItem(label: 'Đang làm', value: '$inProg', color: AppColors.gold, isDark: isDark)),
+        _VertDivider(isDark: isDark),
+        Expanded(child: _StatItem(label: 'Chưa làm', value: '$todo', color: isDark ? Colors.white70 : const Color(0xFF64748B), isDark: isDark)),
+        _VertDivider(isDark: isDark),
+        Expanded(child: _StatItem(label: 'Hoàn thành', value: '$done', color: AppColors.success, isDark: isDark)),
       ]),
     );
   }
 }
 
 class _VertDivider extends StatelessWidget {
+  final bool isDark;
+  const _VertDivider({required this.isDark});
   @override Widget build(BuildContext ctx) =>
-    Container(width: 1, height: 40, color: Colors.white.withValues(alpha: 0.2));
+    Container(width: 1, height: 32, color: isDark ? AppColors.darkBorder : AppColors.lightBorder);
 }
 
 class _ShortcutBtn extends StatelessWidget {
@@ -236,18 +237,19 @@ class _ShortcutBtn extends StatelessWidget {
   final VoidCallback onTap;
   final bool isDark;
   const _ShortcutBtn(this.label, this.icon, this.onTap, this.isDark);
-  @override Widget build(BuildContext ctx) => GestureDetector(
+  @override Widget build(BuildContext ctx) => InkWell(
     onTap: onTap,
+    borderRadius: BorderRadius.circular(AppTokens.rInput),
     child: Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: AppTokens.s12),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkCard : AppColors.lightCard,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppTokens.rInput),
         border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
       ),
       child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(icon, size: 18, color: AppColors.primaryBlue),
-        const SizedBox(width: 8),
+        Icon(icon, size: AppTokens.iconMicro + 2, color: Theme.of(ctx).colorScheme.primary),
+        const SizedBox(width: AppTokens.s8),
         Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
       ]),
     ),
@@ -257,11 +259,19 @@ class _ShortcutBtn extends StatelessWidget {
 class _StatItem extends StatelessWidget {
   final String label, value;
   final Color color;
-  const _StatItem({required this.label, required this.value, required this.color});
+  final bool isDark;
+  const _StatItem({required this.label, required this.value, required this.color, required this.isDark});
   @override Widget build(BuildContext ctx) => Column(children: [
-    Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: color)),
-    const SizedBox(height: 2),
-    Text(label, style: const TextStyle(fontSize: 11, color: Colors.white70)),
+    Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, height: 1.2, color: color)),
+    const SizedBox(height: AppTokens.s4),
+    Text(
+      label,
+      style: TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+        color: Theme.of(ctx).colorScheme.onSurface.withValues(alpha: 0.6),
+      ),
+    ),
   ]);
 }
 
@@ -273,8 +283,33 @@ class _ProjectCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final daysLeft = project.endDate.difference(DateTime.now()).inDays;
-    final isOverdue = daysLeft < 0 && project.status != ProjectStatus.finished;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final endDay = DateTime(project.endDate.year, project.endDate.month, project.endDate.day);
+    final daysLeft = endDay.difference(today).inDays;
+
+    final String deadlineText;
+    final Color deadlineColor;
+    final IconData deadlineIcon;
+
+    if (project.status == ProjectStatus.finished) {
+      deadlineText = 'Hoàn thành';
+      deadlineColor = AppColors.statusFinished;
+      deadlineIcon = Icons.check_circle_outline_rounded;
+    } else if (daysLeft < 0) {
+      deadlineText = 'Trễ ${daysLeft.abs()} ngày';
+      deadlineColor = AppColors.error;
+      deadlineIcon = Icons.schedule_rounded;
+    } else if (daysLeft == 0) {
+      deadlineText = 'Hạn hôm nay';
+      deadlineColor = AppColors.warning;
+      deadlineIcon = Icons.schedule_rounded;
+    } else {
+      deadlineText = 'Còn $daysLeft ngày';
+      deadlineColor = Theme.of(context).textTheme.bodySmall?.color ?? AppColors.statusNotStarted;
+      deadlineIcon = Icons.schedule_rounded;
+    }
+
     Color statusColor;
     switch (project.status) {
       case ProjectStatus.inProgress: statusColor = AppColors.statusInProgress; break;
@@ -282,61 +317,60 @@ class _ProjectCard extends StatelessWidget {
       case ProjectStatus.delayed: statusColor = AppColors.statusDelayed; break;
       default: statusColor = AppColors.statusNotStarted;
     }
-    return GestureDetector(
+    return InkWell(
       onTap: () => context.push('/projects/${project.id}'),
+      borderRadius: BorderRadius.circular(AppTokens.rCard),
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.symmetric(horizontal: AppTokens.s16, vertical: AppTokens.s8),
+        padding: const EdgeInsets.all(AppTokens.s16),
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkCard : AppColors.lightCard,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppTokens.rCard),
           border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)],
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             Expanded(child: Text(project.name,
               style: Theme.of(context).textTheme.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis)),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppTokens.s8),
             StatusBadge.projectStatus(project.status.label),
           ]),
-          const SizedBox(height: 6),
+          const SizedBox(height: AppTokens.s8),
           Text(project.description,
             style: Theme.of(context).textTheme.bodySmall, maxLines: 2, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 14),
+          const SizedBox(height: AppTokens.s12),
           // Progress bar
           Row(children: [
             Expanded(child: LinearPercentIndicator(
-              lineHeight: 6, percent: project.progress / 100,
+              lineHeight: 6, percent: (project.progress / 100).clamp(0.0, 1.0),
               progressColor: statusColor,
               backgroundColor: statusColor.withValues(alpha: 0.15),
-              barRadius: const Radius.circular(4),
+              barRadius: const Radius.circular(3),
               padding: EdgeInsets.zero,
             )),
-            const SizedBox(width: 10),
+            const SizedBox(width: AppTokens.s8),
             Text('${project.progress.toInt()}%',
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: statusColor)),
           ]),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppTokens.s12),
           Row(children: [
             Expanded(child: Row(children: [
-              Icon(Icons.person_outline_rounded, size: 14,
+              Icon(Icons.person_outline_rounded, size: AppTokens.iconMicro,
                 color: Theme.of(context).textTheme.bodySmall?.color),
-              const SizedBox(width: 4),
+              const SizedBox(width: AppTokens.s4),
               Expanded(child: Text(project.leaderName, style: Theme.of(context).textTheme.bodySmall, overflow: TextOverflow.ellipsis)),
             ])),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppTokens.s8),
             Row(children: [
-              Icon(Icons.task_alt_rounded, size: 14,
+              Icon(Icons.assignment_outlined, size: AppTokens.iconMicro,
                 color: Theme.of(context).textTheme.bodySmall?.color),
-              const SizedBox(width: 4),
+              const SizedBox(width: AppTokens.s4),
               Text('${tasks.length} task', style: Theme.of(context).textTheme.bodySmall),
-              const SizedBox(width: 12),
-              Icon(Icons.schedule_rounded, size: 14,
-                color: isOverdue ? AppColors.error : Theme.of(context).textTheme.bodySmall?.color),
-              const SizedBox(width: 4),
-              Text(isOverdue ? 'Trễ ${daysLeft.abs()}' : 'Còn $daysLeft',
-                style: TextStyle(fontSize: 12, color: isOverdue ? AppColors.error : null)),
+              const SizedBox(width: AppTokens.s12),
+              Icon(deadlineIcon, size: AppTokens.iconMicro, color: deadlineColor),
+              const SizedBox(width: AppTokens.s4),
+              Text(deadlineText,
+                style: TextStyle(fontSize: 12, color: deadlineColor)),
             ]),
           ]),
         ]),

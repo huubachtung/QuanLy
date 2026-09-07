@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart'; // Vẫn giữ tạm cho ThemeProvider
 import 'package:app/core/utils/app_colors.dart';
+import 'package:app/core/utils/app_tokens.dart';
 import 'package:app/core/utils/vietnamese_to_telex_formatter.dart';
 import '../../../../core/providers/theme_provider.dart';
 import '../bloc/auth_bloc.dart';
@@ -26,19 +27,21 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _fadeCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
-    _slideCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
-    _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
-    _slideAnim = Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOutCubic));
+    _fadeCtrl = AnimationController(vsync: this, duration: AppTokens.animNormal);
+    _slideCtrl = AnimationController(vsync: this, duration: AppTokens.animNormal);
+    _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOutQuad);
+    _slideAnim = Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOutQuad));
     _fadeCtrl.forward();
     _slideCtrl.forward();
   }
 
   @override
   void dispose() {
-    _userCtrl.dispose(); _passCtrl.dispose();
-    _fadeCtrl.dispose(); _slideCtrl.dispose();
+    _userCtrl.dispose();
+    _passCtrl.dispose();
+    _fadeCtrl.dispose();
+    _slideCtrl.dispose();
     super.dispose();
   }
 
@@ -97,7 +100,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               child: Align(
                 alignment: Alignment.topRight,
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppTokens.s16),
                   child: Consumer<ThemeProvider>(
                     builder: (_, tp, __) => IconButton(
                       onPressed: tp.toggleTheme,
@@ -112,7 +115,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             SafeArea(
               child: Center(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 28),
+                  padding: const EdgeInsets.symmetric(horizontal: AppTokens.s24),
                   child: FadeTransition(
                     opacity: _fadeAnim,
                     child: SlideTransition(
@@ -123,39 +126,36 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                           // Logo
                           Hero(
                             tag: 'app_logo',
-                            child: Image.asset('assets/images/Logo.png', width: 110, height: 110),
+                            child: Image.asset('assets/images/Logo.png', width: 96, height: 96),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: AppTokens.s16),
                           Text('Juss_TV',
                             style: TextStyle(
-                              fontSize: 32, fontWeight: FontWeight.w800,
+                              fontSize: 24, fontWeight: FontWeight.w700,
                               color: isDark ? Colors.white : AppColors.primaryBlue,
-                              letterSpacing: 1,
+                              letterSpacing: 0.5,
                             )),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: AppTokens.s4),
                           Text('Hệ thống quản lý nội bộ',
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: 13,
                               color: isDark
                                 ? Colors.white.withValues(alpha: 0.5)
                                 : AppColors.primaryBlue.withValues(alpha: 0.6),
                             )),
-                          const SizedBox(height: 48),
+                          const SizedBox(height: AppTokens.s32),
                           // Login card
                           Container(
-                            padding: const EdgeInsets.all(24),
+                            padding: const EdgeInsets.all(AppTokens.s24),
                             decoration: BoxDecoration(
                               color: isDark
-                                ? AppColors.darkCard.withValues(alpha: 0.8)
+                                ? AppColors.darkCard
                                 : Colors.white,
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.06),
-                                  blurRadius: 30, offset: const Offset(0, 10),
-                                ),
-                              ],
+                              borderRadius: BorderRadius.circular(AppTokens.rCard),
+                              border: Border.all(
+                                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                                width: 1.0,
+                              ),
                             ),
                             child: BlocBuilder<AuthBloc, AuthState>(
                               builder: (context, state) {
@@ -163,11 +163,14 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                 return Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Đăng nhập', style: Theme.of(context).textTheme.headlineSmall),
-                                    const SizedBox(height: 4),
+                                    Text('Đăng nhập',
+                                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      )),
+                                    const SizedBox(height: AppTokens.s4),
                                     Text('Nhập thông tin tài khoản của bạn',
                                       style: Theme.of(context).textTheme.bodySmall),
-                                    const SizedBox(height: 24),
+                                    const SizedBox(height: AppTokens.s24),
                                     TextField(
                                       controller: _userCtrl,
                                       keyboardType: TextInputType.text,
@@ -189,7 +192,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                         prefixIcon: Icon(Icons.person_outline_rounded, size: 20),
                                       ),
                                     ),
-                                    const SizedBox(height: 14),
+                                    const SizedBox(height: AppTokens.s12),
                                     TextField(
                                       controller: _passCtrl,
                                       obscureText: _obscure,
@@ -216,30 +219,39 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: AppTokens.s8),
                                     // Error message
-                                    if (state is AuthError)
+                                    if (state is AuthError) ...[
                                       Padding(
-                                        padding: const EdgeInsets.only(top: 8, bottom: 4),
+                                        padding: const EdgeInsets.only(top: AppTokens.s8, bottom: AppTokens.s4),
                                         child: Text(state.message,
-                                          style: const TextStyle(color: AppColors.error, fontSize: 13)),
+                                          style: const TextStyle(color: AppColors.error, fontSize: 12)),
                                       ),
-                                    const SizedBox(height: 20),
+                                    ],
+                                    const SizedBox(height: AppTokens.s16),
                                     // Login button
                                     SizedBox(
                                       width: double.infinity,
                                       child: ElevatedButton(
                                         onPressed: isLoading ? null : _login,
                                         style: ElevatedButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(vertical: 16),
+                                          padding: const EdgeInsets.symmetric(vertical: AppTokens.s12),
                                           backgroundColor: isDark ? AppColors.primaryLight : AppColors.primaryBlue,
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(AppTokens.rInput),
+                                          ),
+                                          elevation: 0,
                                         ),
                                         child: isLoading
-                                          ? const SizedBox(width: 22, height: 22,
-                                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                                          : const Text('Đăng nhập',
-                                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                                          ? const SizedBox(
+                                              width: 18,
+                                              height: 18,
+                                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.0),
+                                            )
+                                          : const Text(
+                                              'Đăng nhập',
+                                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                                            ),
                                       ),
                                     ),
                                   ],
@@ -247,7 +259,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                               },
                             ),
                           ),
-                          // Demo hint removed
                         ],
                       ),
                     ),

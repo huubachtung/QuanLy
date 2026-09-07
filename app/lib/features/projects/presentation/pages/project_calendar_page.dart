@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:app/core/utils/app_colors.dart';
+import 'package:app/core/utils/app_tokens.dart';
 import '../../../../core/models/project_model.dart';
 import '../bloc/projects_bloc.dart';
 import '../bloc/projects_state.dart';
@@ -70,69 +71,86 @@ class _ProjectCalendarPageState extends State<ProjectCalendarPage> {
         return Column(children: [
           // Filter scope
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            padding: const EdgeInsets.fromLTRB(
+              AppTokens.s16,
+              AppTokens.s12,
+              AppTokens.s16,
+              0,
+            ),
             child: Row(children: [
               Expanded(
-                child: GestureDetector(
-                  onTap: () => setState(() => _onlyMyProjects = true),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    decoration: BoxDecoration(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: _onlyMyProjects
+                        ? AppColors.primaryBlue
+                        : (isDark ? AppColors.darkCard : AppColors.lightCard),
+                    borderRadius: BorderRadius.circular(AppTokens.rInput),
+                    border: Border.all(
                       color: _onlyMyProjects
                           ? AppColors.primaryBlue
-                          : (isDark ? AppColors.darkCard : AppColors.lightCard),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: _onlyMyProjects
-                            ? AppColors.primaryBlue
-                            : (isDark
-                                ? AppColors.darkBorder
-                                : AppColors.lightBorder),
-                      ),
+                          : (isDark
+                              ? AppColors.darkBorder
+                              : AppColors.lightBorder),
                     ),
-                    child: Center(
-                      child: Text(
-                        'Dự án của tôi',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: _onlyMyProjects
-                              ? Colors.white
-                              : (isDark ? Colors.white70 : AppColors.darkBg),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(AppTokens.rInput),
+                      onTap: () => setState(() => _onlyMyProjects = true),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: AppTokens.s8),
+                        child: Center(
+                          child: Text(
+                            'Dự án của tôi',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: _onlyMyProjects
+                                  ? Colors.white
+                                  : (isDark ? Colors.white70 : AppColors.darkBg),
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppTokens.s8),
               Expanded(
-                child: GestureDetector(
-                  onTap: () => setState(() => _onlyMyProjects = false),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    decoration: BoxDecoration(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: !_onlyMyProjects
+                        ? AppColors.primaryBlue
+                        : (isDark ? AppColors.darkCard : AppColors.lightCard),
+                    borderRadius: BorderRadius.circular(AppTokens.rInput),
+                    border: Border.all(
                       color: !_onlyMyProjects
                           ? AppColors.primaryBlue
-                          : (isDark ? AppColors.darkCard : AppColors.lightCard),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: !_onlyMyProjects
-                            ? AppColors.primaryBlue
-                            : (isDark
-                                ? AppColors.darkBorder
-                                : AppColors.lightBorder),
-                      ),
+                          : (isDark
+                              ? AppColors.darkBorder
+                              : AppColors.lightBorder),
                     ),
-                    child: Center(
-                      child: Text(
-                        'Tất cả (${state.projects.length})',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: !_onlyMyProjects
-                              ? Colors.white
-                              : (isDark ? Colors.white70 : AppColors.darkBg),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(AppTokens.rInput),
+                      onTap: () => setState(() => _onlyMyProjects = false),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: AppTokens.s8),
+                        child: Center(
+                          child: Text(
+                            'Tất cả (${state.projects.length})',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: !_onlyMyProjects
+                                  ? Colors.white
+                                  : (isDark ? Colors.white70 : AppColors.darkBg),
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -143,10 +161,10 @@ class _ProjectCalendarPageState extends State<ProjectCalendarPage> {
           ),
           // Calendar
           Container(
-            margin: const EdgeInsets.all(16),
+            margin: const EdgeInsets.all(AppTokens.s16),
             decoration: BoxDecoration(
               color: isDark ? AppColors.darkCard : AppColors.lightCard,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(AppTokens.rCard),
               border: Border.all(
                   color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
             ),
@@ -263,91 +281,94 @@ class _ProjectCalendarPageState extends State<ProjectCalendarPage> {
                     fontSize: 11),
               ]),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppTokens.s8),
             Expanded(
                 child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: AppTokens.s16),
               itemCount: selectedProjects.length,
               itemBuilder: (_, i) {
                 final p = selectedProjects[i];
                 final color = _statusColor(p.status);
-                return GestureDetector(
-                  onTap: () => context.push('/projects/${p.id}'),
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.darkCard : AppColors.lightCard,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: color.withValues(alpha: 0.4)),
-                      boxShadow: [
-                        BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 6)
-                      ],
+                return Container(
+                  margin: const EdgeInsets.only(bottom: AppTokens.s8),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                    borderRadius: BorderRadius.circular(AppTokens.rCard),
+                    border: Border.all(
+                      color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(children: [
-                          Container(
-                              width: 4,
-                              height: 28,
-                              decoration: BoxDecoration(
-                                  color: color,
-                                  borderRadius: BorderRadius.circular(2))),
-                          const SizedBox(width: 10),
-                          Expanded(
-                              child: Text(p.name,
-                                  style: Theme.of(context).textTheme.titleSmall,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis)),
-                          const SizedBox(width: 8),
-                          StatusBadge.projectStatus(p.status.label),
-                        ]),
-                        const SizedBox(height: 8),
-                        Row(children: [
-                          Expanded(
-                              child: LinearPercentIndicator(
-                            lineHeight: 5,
-                            percent: (p.progress / 100).clamp(0.0, 1.0),
-                            progressColor: color,
-                            backgroundColor: color.withValues(alpha: 0.15),
-                            barRadius: const Radius.circular(3),
-                            padding: EdgeInsets.zero,
-                          )),
-                          const SizedBox(width: 8),
-                          Text('${p.progress.toInt()}%',
-                              style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: color)),
-                        ]),
-                        const SizedBox(height: 6),
-                        Row(children: [
-                          Icon(Icons.date_range_outlined,
-                              size: 13,
-                              color:
-                                  Theme.of(context).textTheme.bodySmall?.color),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${DateFormat('dd/MM').format(p.startDate)} - ${DateFormat('dd/MM/yyyy').format(p.endDate)}',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                          const Spacer(),
-                          if (p.leaderName.isNotEmpty) ...[
-                            Icon(Icons.person_outline_rounded,
-                                size: 13,
-                                color: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.color),
-                            const SizedBox(width: 4),
-                            Text(p.leaderName,
-                                style: Theme.of(context).textTheme.bodySmall),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(AppTokens.rCard),
+                      onTap: () => context.push('/projects/${p.id}'),
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppTokens.s16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [
+                              Container(
+                                  width: 4,
+                                  height: 28,
+                                  decoration: BoxDecoration(
+                                      color: color,
+                                      borderRadius: BorderRadius.circular(2))),
+                              const SizedBox(width: AppTokens.s12),
+                              Expanded(
+                                  child: Text(p.name,
+                                      style: Theme.of(context).textTheme.titleSmall,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis)),
+                              const SizedBox(width: AppTokens.s8),
+                              StatusBadge.projectStatus(p.status.label),
+                            ]),
+                            const SizedBox(height: AppTokens.s8),
+                            Row(children: [
+                              Expanded(
+                                  child: LinearPercentIndicator(
+                                lineHeight: 4,
+                                percent: (p.progress / 100).clamp(0.0, 1.0),
+                                progressColor: color,
+                                backgroundColor: color.withValues(alpha: 0.15),
+                                barRadius: const Radius.circular(2),
+                                padding: EdgeInsets.zero,
+                              )),
+                              const SizedBox(width: AppTokens.s8),
+                              Text('${p.progress.toInt()}%',
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: color)),
+                            ]),
+                            const SizedBox(height: AppTokens.s8),
+                            Row(children: [
+                              Icon(Icons.date_range_outlined,
+                                  size: 13,
+                                  color:
+                                      Theme.of(context).textTheme.bodySmall?.color),
+                              const SizedBox(width: AppTokens.s4),
+                              Text(
+                                '${DateFormat('dd/MM').format(p.startDate)} - ${DateFormat('dd/MM/yyyy').format(p.endDate)}',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11),
+                              ),
+                              const Spacer(),
+                              if (p.leaderName.isNotEmpty) ...[
+                                Icon(Icons.person_outline_rounded,
+                                    size: 13,
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.color),
+                                const SizedBox(width: AppTokens.s4),
+                                Text(p.leaderName,
+                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11)),
+                              ],
+                            ]),
                           ],
-                        ]),
-                      ],
+                        ),
+                      ),
                     ),
                   ),
                 );

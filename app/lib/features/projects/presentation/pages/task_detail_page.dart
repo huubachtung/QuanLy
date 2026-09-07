@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:intl/intl.dart';
 import 'package:app/core/utils/app_colors.dart';
+import 'package:app/core/utils/app_tokens.dart';
 import '../../../../core/models/project_model.dart';
 import '../bloc/projects_bloc.dart';
 import '../bloc/projects_event.dart';
@@ -120,15 +121,15 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
             elevation: 0,
           ),
           body: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppTokens.s16),
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               // Task header
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(AppTokens.s16),
                 decoration: BoxDecoration(
                   color: isDark ? AppColors.darkCard : AppColors.lightCard,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(AppTokens.rCard),
                   border: Border.all(
                       color: isDark
                           ? AppColors.darkBorder
@@ -147,18 +148,18 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                             color: priorityColor,
                             fontSize: 11),
                       ]),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: AppTokens.s8),
                       if (task.description.isNotEmpty) ...[
                         Text(task.description,
                             style: Theme.of(context).textTheme.bodyMedium),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppTokens.s16),
                       ],
                       // Info rows
                       _InfoRow(
                           icon: Icons.folder_outlined,
                           label: 'Dự án',
                           value: task.projectName),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: AppTokens.s8),
                       _InfoRow(
                           icon: Icons.assignment_turned_in_outlined,
                           label: 'Trạng thái',
@@ -166,20 +167,20 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                               ? task.statusName
                               : task.status.label,
                           valueColor: AppColors.primaryBlue),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: AppTokens.s8),
                       _InfoRow(
                           icon: Icons.person_outline_rounded,
                           label: 'Người giao',
                           value: task.reporterName),
                       if (task.assignedToName.isNotEmpty) ...[
-                        const SizedBox(height: 6),
+                        const SizedBox(height: AppTokens.s8),
                         _InfoRow(
                             icon: Icons.person_pin_circle_outlined,
                             label: 'Người thực hiện',
                             value: task.assignedToName),
                       ],
                       if (task.deadlineDate != null) ...[
-                        const SizedBox(height: 6),
+                        const SizedBox(height: AppTokens.s8),
                         _InfoRow(
                             icon: Icons.schedule_rounded,
                             label: 'Deadline',
@@ -192,7 +193,7 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                                     : null),
                       ],
                       if (task.requiredSkill.isNotEmpty) ...[
-                        const SizedBox(height: 6),
+                        const SizedBox(height: AppTokens.s8),
                         _InfoRow(
                             icon: Icons.stars_rounded,
                             label: 'Kỹ năng',
@@ -200,13 +201,13 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                       ],
                     ]),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppTokens.s16),
               // Progress update card
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(AppTokens.s16),
                 decoration: BoxDecoration(
                   color: isDark ? AppColors.darkCard : AppColors.lightCard,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(AppTokens.rCard),
                   border: Border.all(
                       color: isDark
                           ? AppColors.darkBorder
@@ -217,23 +218,23 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                     children: [
                       Text('Cập nhật tiến độ',
                           style: Theme.of(context).textTheme.titleMedium),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: AppTokens.s16),
                       // Circular progress
                       Center(
                           child: CircularPercentIndicator(
-                        radius: 60,
-                        lineWidth: 10,
+                        radius: 56,
+                        lineWidth: 8,
                         percent: (_progress / 100).clamp(0.0, 1.0),
                         progressColor: AppColors.primaryBlue,
                         backgroundColor:
                             AppColors.primaryBlue.withValues(alpha: 0.15),
                         center: Text('${_progress.toInt()}%',
                             style: const TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w800,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
                                 color: AppColors.primaryBlue)),
                       )),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: AppTokens.s16),
                       // Slider
                       SliderTheme(
                         data: SliderTheme.of(context).copyWith(
@@ -262,21 +263,21 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                           }),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: AppTokens.s16),
                       // Status / Workflow step selector
                       Row(
                         children: [
                           Text('Quy trình / Trạng thái',
                               style: Theme.of(context).textTheme.titleSmall),
                           if (task.statusName.isNotEmpty) ...[
-                            const SizedBox(width: 8),
+                            const SizedBox(width: AppTokens.s8),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
+                                  horizontal: AppTokens.s8, vertical: 2),
                               decoration: BoxDecoration(
                                 color: AppColors.primaryBlue
                                     .withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(6),
+                                borderRadius: BorderRadius.circular(AppTokens.rMicro),
                               ),
                               child: Text(
                                 task.statusName,
@@ -290,11 +291,11 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                           ],
                         ],
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: AppTokens.s12),
                       if (task.workflowSteps.isNotEmpty)
                         Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
+                          spacing: AppTokens.s8,
+                          runSpacing: AppTokens.s8,
                           children: task.workflowSteps.map((step) {
                             final isSelected =
                                 _selectedStepId == step.stepId;
@@ -308,17 +309,17 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                                 }
                               }),
                               child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 150),
+                                duration: AppTokens.animFast,
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 8),
+                                    horizontal: AppTokens.s12, vertical: AppTokens.s8),
                                 decoration: BoxDecoration(
                                   color: isSelected
-                                      ? AppColors.primaryBlue
+                                      ? (isDark ? AppColors.primaryLight : AppColors.primaryBlue)
                                       : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(20),
+                                  borderRadius: BorderRadius.circular(AppTokens.rMicro),
                                   border: Border.all(
                                     color: isSelected
-                                        ? AppColors.primaryBlue
+                                        ? (isDark ? AppColors.primaryLight : AppColors.primaryBlue)
                                         : (isDark
                                             ? AppColors.darkBorder
                                             : AppColors.lightBorder),
@@ -330,17 +331,17 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                                     if (step.isApprovalNode) ...[
                                       Icon(
                                         Icons.verified_user_outlined,
-                                        size: 14,
+                                        size: AppTokens.iconMicro,
                                         color: isSelected
                                             ? Colors.white
                                             : AppColors.warning,
                                       ),
-                                      const SizedBox(width: 4),
+                                      const SizedBox(width: AppTokens.s4),
                                     ],
                                     Text(
                                       step.label,
                                       style: TextStyle(
-                                        fontSize: 13,
+                                        fontSize: 12,
                                         fontWeight: FontWeight.w600,
                                         color:
                                             isSelected ? Colors.white : null,
@@ -354,7 +355,7 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                         )
                       else
                         Wrap(
-                          spacing: 8,
+                          spacing: AppTokens.s8,
                           children: TaskStatus.values
                               .where((s) => s != TaskStatus.cancelled)
                               .map((s) => GestureDetector(
@@ -367,26 +368,25 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                                       }
                                     }),
                                     child: AnimatedContainer(
-                                      duration:
-                                          const Duration(milliseconds: 150),
+                                      duration: AppTokens.animFast,
                                       padding: const EdgeInsets.symmetric(
-                                          horizontal: 14, vertical: 8),
+                                          horizontal: AppTokens.s12, vertical: AppTokens.s8),
                                       decoration: BoxDecoration(
                                         color: _status == s
-                                            ? AppColors.primaryBlue
+                                            ? (isDark ? AppColors.primaryLight : AppColors.primaryBlue)
                                             : Colors.transparent,
                                         borderRadius:
-                                            BorderRadius.circular(20),
+                                            BorderRadius.circular(AppTokens.rMicro),
                                         border: Border.all(
                                             color: _status == s
-                                                ? AppColors.primaryBlue
+                                                ? (isDark ? AppColors.primaryLight : AppColors.primaryBlue)
                                                 : (isDark
                                                     ? AppColors.darkBorder
                                                     : AppColors.lightBorder)),
                                       ),
                                       child: Text(s.label,
                                           style: TextStyle(
-                                            fontSize: 13,
+                                            fontSize: 12,
                                             fontWeight: FontWeight.w600,
                                             color: _status == s
                                                 ? Colors.white
@@ -396,7 +396,7 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                                   ))
                               .toList(),
                         ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: AppTokens.s24),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
@@ -435,8 +435,8 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(children: [
         Icon(icon,
-            size: 16, color: Theme.of(context).textTheme.bodySmall?.color),
-        const SizedBox(width: 8),
+            size: AppTokens.iconMicro, color: Theme.of(context).textTheme.bodySmall?.color),
+        const SizedBox(width: AppTokens.s8),
         Text('$label: ', style: Theme.of(context).textTheme.bodySmall),
         Expanded(
             child: Text(value,

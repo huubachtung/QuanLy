@@ -9,7 +9,7 @@ class UserEntity extends Equatable {
   final String? avatar;
   final String? employeeCode;
   final String role; 
-  final String employeeType; 
+  final String? employeeType; 
   final String? department;
   final String? departmentId;
   final DateTime? hiredDate;
@@ -18,6 +18,7 @@ class UserEntity extends Equatable {
   final String? workStartTime;
   final String? workEndTime;
   final List<LeaveBalanceEntity> leaveBalances;
+  final String? position;
 
   const UserEntity({
     required this.id,
@@ -37,7 +38,50 @@ class UserEntity extends Equatable {
     this.workStartTime = '08:30',
     this.workEndTime = '17:30',
     this.leaveBalances = const [],
+    this.position,
   });
+
+  UserEntity copyWith({
+    String? id,
+    String? username,
+    String? displayName,
+    String? email,
+    String? phone,
+    String? avatar,
+    String? employeeCode,
+    String? role,
+    String? employeeType,
+    String? department,
+    String? departmentId,
+    DateTime? hiredDate,
+    double? annualLeaveBalance,
+    double? baseSalary,
+    String? workStartTime,
+    String? workEndTime,
+    List<LeaveBalanceEntity>? leaveBalances,
+    String? position,
+  }) {
+    return UserEntity(
+      id: id ?? this.id,
+      username: username ?? this.username,
+      displayName: displayName ?? this.displayName,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      avatar: avatar ?? this.avatar,
+      employeeCode: employeeCode ?? this.employeeCode,
+      role: role ?? this.role,
+      employeeType: employeeType ?? this.employeeType,
+      department: department ?? this.department,
+      departmentId: departmentId ?? this.departmentId,
+      hiredDate: hiredDate ?? this.hiredDate,
+      annualLeaveBalance: annualLeaveBalance ?? this.annualLeaveBalance,
+      baseSalary: baseSalary ?? this.baseSalary,
+      workStartTime: workStartTime ?? this.workStartTime,
+      workEndTime: workEndTime ?? this.workEndTime,
+      leaveBalances: leaveBalances ?? this.leaveBalances,
+      position: position ?? this.position,
+    );
+  }
 
   @override
   List<Object?> get props => [
@@ -49,6 +93,7 @@ class UserEntity extends Equatable {
         employeeCode,
         department,
         departmentId,
+        position,
       ];
 }
 

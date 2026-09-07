@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:app/core/utils/app_colors.dart';
+import 'package:app/core/utils/app_tokens.dart';
 import '../../../../core/models/project_model.dart';
 import '../bloc/projects_bloc.dart';
 import '../bloc/projects_state.dart';
@@ -19,7 +21,7 @@ class _TimelinePageState extends State<TimelinePage> {
   final DateTime _startDate = DateTime.now().subtract(const Duration(days: 15));
   final int _dayCount = 60;
   final double _dayWidth = 60.0;
-  final double _rowHeight = 70.0;
+  final double _rowHeight = 64.0;
 
   @override
   void initState() {
@@ -66,7 +68,10 @@ class _TimelinePageState extends State<TimelinePage> {
                           ...List.generate(_dayCount, (i) => Positioned(
                             left: i * _dayWidth,
                             top: 0, bottom: 0,
-                            child: VerticalDivider(width: 1, color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                            child: VerticalDivider(
+                              width: 1,
+                              color: (isDark ? AppColors.darkBorder : AppColors.lightBorder).withValues(alpha: 0.6),
+                            ),
                           )),
                           // Task Rows
                           ...List.generate(tasks.length, (i) {
@@ -77,54 +82,79 @@ class _TimelinePageState extends State<TimelinePage> {
                             // Calculate position
                             final double startOffset = taskStart.difference(_startDate).inDays.toDouble() * _dayWidth;
                             final int durationDays = taskEnd.difference(taskStart).inDays + 1;
-                            final double width = durationDays.toDouble() * _dayWidth;
+                            final double width = (durationDays.toDouble() * _dayWidth).clamp(32.0, double.infinity);
+                            final color = _getStatusColor(task.status);
                             
                             return Positioned(
-                              top: i * _rowHeight + 20,
+                              top: i * _rowHeight + AppTokens.s16,
                               left: 0,
                               right: 0,
                               child: SizedBox(
                                 height: _rowHeight,
                                 child: Stack(
                                   children: [
-                                    // Task bar
+                                    // Task bar background
                                     Positioned(
                                       left: startOffset,
                                       width: width,
                                       height: 32,
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: _getStatusColor(task.status).withValues(alpha: 0.2),
-                                          borderRadius: BorderRadius.circular(16),
-                                          border: Border.all(color: _getStatusColor(task.status), width: 1.5),
+                                      child: GestureDetector(
+                                        onTap: () => context.push('/tasks/${task.id}'),
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            color: color.withValues(alpha: 0.12),
+                                            borderRadius: BorderRadius.circular(AppTokens.rMicro),
+                                            border: Border.all(color: color.withValues(alpha: 0.5), width: 1),
+                                          ),
+                                          alignment: Alignment.centerLeft,
+                                          padding: const EdgeInsets.symmetric(horizontal: AppTokens.s8),
+                                          child: Text(
+                                            task.name, 
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: isDark ? Colors.white : AppColors.darkBg,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
                                         ),
-                                        alignment: Alignment.centerLeft,
-                                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                                        child: Text(task.name, 
-                                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-                                          maxLines: 1, overflow: TextOverflow.ellipsis),
                                       ),
                                     ),
                                     // Progress indicator inside bar
                                     Positioned(
                                       left: startOffset,
-                                      width: width * (task.progress / 100),
+                                      width: (width * (task.progress / 100)).clamp(0.0, width),
                                       height: 32,
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: _getStatusColor(task.status),
-                                          borderRadius: BorderRadius.circular(16),
+                                      child: IgnorePointer(
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            color: color.withValues(alpha: 0.4),
+                                            borderRadius: BorderRadius.circular(AppTokens.rMicro),
+                                          ),
                                         ),
                                       ),
                                     ),
-                                    // Label overlay (to keep text readable)
+                                    // Label overlay (to keep progress readable)
                                     Positioned(
                                       left: startOffset,
                                       width: width,
                                       height: 32,
-                                      child: Center(
-                                        child: Text('${task.progress}%',
-                                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white)),
+                                      child: IgnorePointer(
+                                        child: Align(
+                                          alignment: Alignment.centerRight,
+                                          child: Padding(
+                                            padding: const EdgeInsets.only(right: AppTokens.s8),
+                                            child: Text(
+                                              '${task.progress.toInt()}%',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w700,
+                                                color: isDark ? Colors.white70 : color,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ],

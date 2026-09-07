@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:app/core/utils/app_colors.dart';
+import 'package:app/core/utils/app_tokens.dart';
 import '../../../../core/models/notification_model.dart';
 import '../bloc/notification_bloc.dart';
 import '../bloc/notification_event.dart';
@@ -163,11 +164,19 @@ class _NotificationPageState extends State<NotificationPage>
               if (unreadCount > 0)
                 Container(
                   width: double.infinity,
-                  margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  margin: const EdgeInsets.fromLTRB(
+                    AppTokens.s16,
+                    AppTokens.s8,
+                    AppTokens.s16,
+                    AppTokens.s4,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppTokens.s12,
+                    vertical: AppTokens.s8,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primaryBlue.withValues(alpha: isDark ? 0.15 : 0.08),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(AppTokens.rInput),
                     border: Border.all(
                       color: AppColors.primaryBlue.withValues(alpha: 0.2),
                     ),
@@ -176,7 +185,7 @@ class _NotificationPageState extends State<NotificationPage>
                     children: [
                       const Icon(Icons.mark_email_unread_outlined,
                           size: 16, color: AppColors.primaryBlue),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppTokens.s8),
                       Text(
                         'Bạn có $unreadCount thông báo chưa đọc',
                         style: const TextStyle(
@@ -202,13 +211,13 @@ class _NotificationPageState extends State<NotificationPage>
                       children: [
                         Text(t.label),
                         if (t.key == 'unread' && count > 0) ...[
-                          const SizedBox(width: 6),
+                          const SizedBox(width: AppTokens.s8),
                           Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 6, vertical: 1),
                             decoration: BoxDecoration(
                               color: AppColors.error,
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(AppTokens.rMicro),
                             ),
                             child: Text(
                               '$count',
@@ -249,19 +258,19 @@ class _NotificationPageState extends State<NotificationPage>
     if (state is NotificationError) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(AppTokens.s24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.error_outline_rounded,
                   size: 48, color: AppColors.error),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppTokens.s12),
               Text(
                 state.message,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppTokens.s16),
               ElevatedButton.icon(
                 onPressed: () => context
                     .read<NotificationBloc>()
@@ -309,157 +318,164 @@ class _NotificationPageState extends State<NotificationPage>
             },
             child: ListView.separated(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(vertical: AppTokens.s8),
               itemCount: list.length,
               separatorBuilder: (_, __) => const SizedBox(height: 2),
               itemBuilder: (ctx, i) {
                 final n = list[i];
                 final color = _notifColor(n.type);
 
-                return InkWell(
-                  onTap: () => _onTap(context, n),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    margin:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
+                return Container(
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: AppTokens.s16,
+                    vertical: AppTokens.s4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: n.isRead
+                        ? (isDark ? AppColors.darkCard : AppColors.lightCard)
+                        : (isDark
+                            ? AppColors.darkCardElevated
+                            : AppColors.primaryBlue.withValues(alpha: 0.05)),
+                    borderRadius: BorderRadius.circular(AppTokens.rCard),
+                    border: Border.all(
                       color: n.isRead
-                          ? (isDark ? AppColors.darkCard : AppColors.lightCard)
-                          : (isDark
-                              ? AppColors.darkCardElevated
-                              : AppColors.primaryBlue.withValues(alpha: 0.05)),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: n.isRead
-                            ? (isDark
-                                ? AppColors.darkBorder
-                                : AppColors.lightBorder)
-                            : color.withValues(alpha: 0.35),
-                        width: n.isRead ? 1 : 1.5,
-                      ),
+                          ? (isDark
+                              ? AppColors.darkBorder
+                              : AppColors.lightBorder)
+                          : color.withValues(alpha: 0.35),
+                      width: n.isRead ? 1 : 1.5,
                     ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: color.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: _buildNotifIcon(n.type, color),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(AppTokens.rCard),
+                      onTap: () => _onTap(context, n),
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppTokens.s16),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: color.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(AppTokens.rInput),
+                              ),
+                              child: _buildNotifIcon(n.type, color),
+                            ),
+                            const SizedBox(width: AppTokens.s12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Expanded(
-                                    child: Text(
-                                      n.title,
-                                      style: TextStyle(
-                                        fontSize: 13.5,
-                                        fontWeight: n.isRead
-                                            ? FontWeight.w500
-                                            : FontWeight.w700,
-                                        color: Theme.of(context)
-                                            .textTheme
-                                            .bodyLarge
-                                            ?.color,
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          n.title,
+                                          style: TextStyle(
+                                            fontSize: 13.5,
+                                            fontWeight: n.isRead
+                                                ? FontWeight.w500
+                                                : FontWeight.w700,
+                                            color: Theme.of(context)
+                                                .textTheme
+                                                .bodyLarge
+                                                ?.color,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                       ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                                      if (!n.isRead) ...[
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          width: 8,
+                                          height: 8,
+                                          decoration: const BoxDecoration(
+                                            color: AppColors.primaryBlue,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
-                                  if (!n.isRead) ...[
-                                    const SizedBox(width: 6),
-                                    Container(
-                                      width: 8,
-                                      height: 8,
-                                      decoration: const BoxDecoration(
-                                        color: AppColors.primaryBlue,
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                n.body,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
-                                      color: n.isRead
-                                          ? Theme.of(context)
-                                              .textTheme
-                                              .bodySmall
-                                              ?.color
-                                              ?.withValues(alpha: 0.8)
-                                          : Theme.of(context)
-                                              .textTheme
-                                              .bodySmall
-                                              ?.color,
-                                    ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  if (n.senderName != null &&
-                                      n.senderName!.isNotEmpty) ...[
-                                    Icon(Icons.person_outline_rounded,
-                                        size: 12,
-                                        color: Theme.of(context)
-                                            .textTheme
-                                            .labelSmall
-                                            ?.color),
-                                    const SizedBox(width: 3),
-                                    Text(
-                                      n.senderName!,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelSmall,
-                                    ),
-                                    const SizedBox(width: 8),
-                                  ],
-                                  Icon(Icons.access_time_rounded,
-                                      size: 12,
-                                      color: Theme.of(context)
-                                          .textTheme
-                                          .labelSmall
-                                          ?.color),
-                                  const SizedBox(width: 3),
+                                  const SizedBox(height: AppTokens.s4),
                                   Text(
-                                    _formatTime(n.createdAt),
+                                    n.body,
                                     style: Theme.of(context)
                                         .textTheme
-                                        .labelSmall,
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: n.isRead
+                                              ? Theme.of(context)
+                                                  .textTheme
+                                                  .bodySmall
+                                                  ?.color
+                                                  ?.withValues(alpha: 0.8)
+                                              : Theme.of(context)
+                                                  .textTheme
+                                                  .bodySmall
+                                                  ?.color,
+                                        ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                  if (n.link.isNotEmpty) ...[
-                                    const Spacer(),
-                                    Icon(
-                                      Icons.arrow_forward_ios_rounded,
-                                      size: 11,
-                                      color: Theme.of(context)
-                                          .textTheme
-                                          .labelSmall
-                                          ?.color
-                                          ?.withValues(alpha: 0.6),
-                                    ),
-                                  ],
+                                  const SizedBox(height: AppTokens.s8),
+                                  Row(
+                                    children: [
+                                      if (n.senderName != null &&
+                                          n.senderName!.isNotEmpty) ...[
+                                        Icon(Icons.person_outline_rounded,
+                                            size: 12,
+                                            color: Theme.of(context)
+                                                .textTheme
+                                                .labelSmall
+                                                ?.color),
+                                        const SizedBox(width: AppTokens.s4),
+                                        Text(
+                                          n.senderName!,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .labelSmall,
+                                        ),
+                                        const SizedBox(width: AppTokens.s8),
+                                      ],
+                                      Icon(Icons.access_time_rounded,
+                                          size: 12,
+                                          color: Theme.of(context)
+                                              .textTheme
+                                              .labelSmall
+                                              ?.color),
+                                      const SizedBox(width: AppTokens.s4),
+                                      Text(
+                                        _formatTime(n.createdAt),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelSmall,
+                                      ),
+                                      if (n.link.isNotEmpty) ...[
+                                        const Spacer(),
+                                        Icon(
+                                          Icons.arrow_forward_ios_rounded,
+                                          size: 11,
+                                          color: Theme.of(context)
+                                              .textTheme
+                                              .labelSmall
+                                              ?.color
+                                              ?.withValues(alpha: 0.6),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
                                 ],
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 );

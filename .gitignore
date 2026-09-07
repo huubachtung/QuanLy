@@ -87,3 +87,7 @@ coverage/
 !.env.example
 debug.md
 tree.txt
+
+# other
+CLAUDE.md
+SKILL.md

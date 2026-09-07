@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:app/core/utils/app_colors.dart';
+import 'package:app/core/utils/app_tokens.dart';
 import '../../../../core/models/overtime_model.dart';
 import '../bloc/overtime/overtime_bloc.dart';
 import '../bloc/overtime/overtime_event.dart';
@@ -108,7 +109,6 @@ class _OvertimePageState extends State<OvertimePage> {
 
   Future<void> _submitBulk(OvertimeLoaded state) async {
     final entries = <Map<String, dynamic>>[];
-    String? invalidDate;
 
     final otRecords = state.records
         .where((r) =>
@@ -124,25 +124,12 @@ class _OvertimePageState extends State<OvertimePage> {
       final reason = _reasonCtrl[r.date]?.text.trim() ?? r.reason;
 
       if (hours > 0) {
-        if (reason.isEmpty) {
-          invalidDate = r.date;
-          setState(() => _errors[r.date] = 'Vui lòng nhập lý do tăng ca');
-          break;
-        }
         entries.add({
           'date': r.date,
           'hours': hours,
           'reason': reason,
         });
       }
-    }
-
-    if (invalidDate != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Vui lòng nhập đầy đủ lý do cho ngày $invalidDate'),
-        backgroundColor: AppColors.warning,
-      ));
-      return;
     }
 
     if (entries.isEmpty) {
@@ -158,27 +145,25 @@ class _OvertimePageState extends State<OvertimePage> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Gửi duyệt bảng OT tháng ${state.selectedMonth}/${state.selectedYear}',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        title: const Text('Xác nhận gửi duyệt OT', style: TextStyle(fontSize: 16)),
         content: Text(
-            'Bạn đang gửi duyệt ${entries.length} ngày tăng ca với tổng cộng ${totalHours.toStringAsFixed(1)} giờ OT.\n\nXác nhận gửi cho Quản lý phê duyệt?'),
+            'Bạn có chắc muốn gửi duyệt ${entries.length} ngày tăng ca (Tổng: ${totalHours.toStringAsFixed(1)}h) không?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Xem lại'),
+            child: const Text('Hủy'),
           ),
-          ElevatedButton.icon(
+          ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            icon: const Icon(Icons.send_rounded, size: 16),
-            label: const Text('Xác nhận gửi'),
+            child: const Text('Gửi duyệt'),
           ),
         ],
       ),
     );
 
-    if (confirm == true && mounted) {
-      context.read<OvertimeBloc>().add(SubmitBulkOvertime(entries));
-    }
+    if (confirm != true || !mounted) return;
+
+    context.read<OvertimeBloc>().add(SubmitBulkOvertime(entries));
   }
 
   @override
@@ -188,16 +173,19 @@ class _OvertimePageState extends State<OvertimePage> {
     return BlocConsumer<OvertimeBloc, OvertimeState>(
       listener: (context, state) {
         if (state is OvertimeActionSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(state.message),
-            duration: const Duration(seconds: 2),
-            backgroundColor: AppColors.success,
-          ));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: AppColors.success,
+            ),
+          );
         } else if (state is OvertimeError) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(state.message),
-            backgroundColor: AppColors.error,
-          ));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: AppColors.error,
+            ),
+          );
         }
       },
       builder: (context, state) {
@@ -205,9 +193,14 @@ class _OvertimePageState extends State<OvertimePage> {
         final currentYear = context.read<OvertimeBloc>().currentYear;
 
         return Column(children: [
-          // Header Bar with MonthPicker
+          // Month Picker Bar
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              AppTokens.s16,
+              AppTokens.s12,
+              AppTokens.s16,
+              AppTokens.s8,
+            ),
             child: Row(children: [
               MonthYearPicker(
                 month: currentMonth,
@@ -223,15 +216,27 @@ class _OvertimePageState extends State<OvertimePage> {
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTokens.s12,
+                  vertical: AppTokens.s8,
+                ),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(AppTokens.rInput),
+                  border: Border.all(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.2),
+                  ),
                 ),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.timer_rounded,
+                  Icon(Icons.timer_outlined,
                       size: 16, color: Theme.of(context).colorScheme.primary),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: AppTokens.s4),
                   Text(
                     'Tháng $currentMonth/$currentYear',
                     style: TextStyle(
@@ -248,12 +253,20 @@ class _OvertimePageState extends State<OvertimePage> {
           // Summary stats header
           if (state is OvertimeLoaded && state.records.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+              padding: const EdgeInsets.fromLTRB(
+                AppTokens.s16,
+                0,
+                AppTokens.s16,
+                AppTokens.s8,
+              ),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTokens.s16,
+                  vertical: AppTokens.s12,
+                ),
                 decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkCard : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                  borderRadius: BorderRadius.circular(AppTokens.rInput),
                   border: Border.all(
                       color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
                 ),
@@ -330,21 +343,21 @@ class _OvertimePageState extends State<OvertimePage> {
               ),
               // Floating Bottom Bar for Bulk Submission
               Container(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                padding: const EdgeInsets.fromLTRB(
+                  AppTokens.s16,
+                  AppTokens.s12,
+                  AppTokens.s16,
+                  AppTokens.s16,
+                ),
                 decoration: BoxDecoration(
                   color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
                   border: Border(
-                      top: BorderSide(
-                          color: isDark
-                              ? AppColors.darkBorder
-                              : AppColors.lightBorder)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
-                      blurRadius: 10,
-                      offset: const Offset(0, -2),
+                    top: BorderSide(
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : AppColors.lightBorder,
                     ),
-                  ],
+                  ),
                 ),
                 child: SafeArea(
                   child: SizedBox(
@@ -366,9 +379,10 @@ class _OvertimePageState extends State<OvertimePage> {
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: AppTokens.s12),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(AppTokens.rInput),
+                        ),
                       ),
                     ),
                   ),
@@ -457,11 +471,11 @@ class _OtCard extends StatelessWidget {
     final checkOut = record.checkOut != null && record.checkOut!.isNotEmpty ? record.checkOut! : '--:--';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: AppTokens.s8),
+      padding: const EdgeInsets.all(AppTokens.s16),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkCard : AppColors.lightCard,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppTokens.rCard),
         border: Border.all(
           color: isApproved
               ? AppColors.success.withValues(alpha: 0.5)
@@ -476,24 +490,27 @@ class _OtCard extends StatelessWidget {
         Row(children: [
           // Date Badge
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTokens.s8,
+              vertical: AppTokens.s4,
+            ),
             decoration: BoxDecoration(
               color: isWeekend
-                  ? AppColors.warning.withValues(alpha: 0.15)
-                  : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+                  ? AppColors.warning.withValues(alpha: 0.12)
+                  : Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(AppTokens.rMicro),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  Icons.calendar_today_rounded,
+                  Icons.calendar_today_outlined,
                   size: 13,
                   color: isWeekend
                       ? AppColors.warning
                       : Theme.of(context).colorScheme.primary,
                 ),
-                const SizedBox(width: 5),
+                const SizedBox(width: AppTokens.s4),
                 Text(
                   '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')} ($weekdayStr)',
                   style: TextStyle(
@@ -512,14 +529,17 @@ class _OtCard extends StatelessWidget {
           _StatusChip(record.status),
         ]),
 
-        const SizedBox(height: 10),
+        const SizedBox(height: AppTokens.s12),
 
         // Check-in / Check-out & System OT Highlight Box
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTokens.s12,
+            vertical: AppTokens.s8,
+          ),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.circular(10),
+            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(AppTokens.rInput),
             border: Border.all(
               color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
             ),
@@ -530,16 +550,12 @@ class _OtCard extends StatelessWidget {
               Expanded(
                 child: Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: AppColors.success.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.login_rounded,
-                          size: 13, color: AppColors.success),
+                    const Icon(
+                      Icons.login_rounded,
+                      size: 16,
+                      color: AppColors.success,
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: AppTokens.s8),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -564,19 +580,15 @@ class _OtCard extends StatelessWidget {
               // CheckOut
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.only(left: 10),
+                  padding: const EdgeInsets.only(left: AppTokens.s8),
                   child: Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: AppColors.error.withValues(alpha: 0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.logout_rounded,
-                            size: 13, color: AppColors.error),
+                      const Icon(
+                        Icons.logout_rounded,
+                        size: 16,
+                        color: AppColors.error,
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: AppTokens.s8),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -601,7 +613,7 @@ class _OtCard extends StatelessWidget {
               ),
               // System OT
               Padding(
-                padding: const EdgeInsets.only(left: 10),
+                padding: const EdgeInsets.only(left: AppTokens.s8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -622,7 +634,7 @@ class _OtCard extends StatelessWidget {
         ),
 
         if (isApproved && record.approverName.isNotEmpty) ...[
-          const SizedBox(height: 6),
+          const SizedBox(height: AppTokens.s8),
           Text(
             'Duyệt bởi: ${record.approverName}',
             style: const TextStyle(fontSize: 11, color: AppColors.success),
@@ -631,17 +643,17 @@ class _OtCard extends StatelessWidget {
 
         // Rejection banner if rejected
         if (isRejected && record.rejectReason.isNotEmpty) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: AppTokens.s8),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(AppTokens.s8),
             decoration: BoxDecoration(
               color: AppColors.error.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppTokens.rMicro),
             ),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Icon(Icons.info_outline_rounded, color: AppColors.error, size: 14),
-              const SizedBox(width: 6),
+              const SizedBox(width: AppTokens.s4),
               Expanded(
                 child: Text(
                   'Lý do từ chối: ${record.rejectReason}',
@@ -654,9 +666,9 @@ class _OtCard extends StatelessWidget {
 
         // Input Fields (if editable)
         if (record.isEditable) ...[
-          const SizedBox(height: 10),
+          const SizedBox(height: AppTokens.s8),
           const Divider(height: 1),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppTokens.s8),
 
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             // Hours Stepper / Input
@@ -679,7 +691,7 @@ class _OtCard extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: AppTokens.s8),
             // Reason Input
             Expanded(
               child: TextField(
@@ -698,7 +710,7 @@ class _OtCard extends StatelessWidget {
             ),
           ]),
 
-          const SizedBox(height: 10),
+          const SizedBox(height: AppTokens.s8),
 
           // Actions
           Row(children: [
@@ -713,7 +725,7 @@ class _OtCard extends StatelessWidget {
                 child: const Text('Không OT', style: TextStyle(fontSize: 11)),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppTokens.s8),
             // Lưu ngày này button
             Expanded(
               child: ElevatedButton.icon(
@@ -728,7 +740,7 @@ class _OtCard extends StatelessWidget {
             ),
             // Delete button (if pending)
             if (isPending && record.id != null) ...[
-              const SizedBox(width: 6),
+              const SizedBox(width: AppTokens.s8),
               IconButton(
                 onPressed: onDelete,
                 icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.error),
@@ -771,16 +783,17 @@ class _StatusChip extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: AppTokens.s8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(10),
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppTokens.rMicro),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(
         status.label,
         style: TextStyle(
           fontSize: 10,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
           color: color,
         ),
       ),

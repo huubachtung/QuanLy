@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:app/core/utils/app_colors.dart';
+import 'package:app/core/utils/app_tokens.dart';
 import '../../../../core/models/leave_request_model.dart';
 import '../bloc/leave/leave_bloc.dart';
 import '../bloc/leave/leave_event.dart';
@@ -42,12 +43,12 @@ class _RequestListPageState extends State<RequestListPage> with SingleTickerProv
   @override void dispose() { _statusTab.dispose(); super.dispose(); }
 
   IconData _typeIcon(LeaveType type) {
-    if (type == LeaveType.latePermission) return Icons.watch_later_rounded;
+    if (type == LeaveType.latePermission) return Icons.watch_later_outlined;
     if (type == LeaveType.earlyLeaveRequest) return Icons.exit_to_app_rounded;
     if (type == LeaveType.onlineWork) return Icons.laptop_rounded;
     if (type == LeaveType.shiftChange) return Icons.swap_horiz_rounded;
-    if (type == LeaveType.annualLeave || type == LeaveType.sickLeave) return Icons.beach_access_rounded;
-    return Icons.assignment_rounded;
+    if (type == LeaveType.annualLeave || type == LeaveType.sickLeave) return Icons.beach_access_outlined;
+    return Icons.assignment_outlined;
   }
 
   @override
@@ -57,38 +58,50 @@ class _RequestListPageState extends State<RequestListPage> with SingleTickerProv
     return Column(children: [
       // Sub-nav links
       Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        padding: const EdgeInsets.fromLTRB(
+          AppTokens.s16,
+          AppTokens.s12,
+          AppTokens.s16,
+          0,
+        ),
         child: Row(children: [
-          _NavLink('Xin nghỉ', Icons.beach_access_rounded, () => context.go('/leave'), isDark),
-          const SizedBox(width: 8),
-          _NavLink('Tăng ca', Icons.timer_rounded, () => context.go('/overtime'), isDark),
+          _NavLink('Xin nghỉ', Icons.beach_access_outlined, () => context.go('/leave'), isDark),
+          const SizedBox(width: AppTokens.s8),
+          _NavLink('Tăng ca', Icons.timer_outlined, () => context.go('/overtime'), isDark),
         ]),
       ),
-      const SizedBox(height: 10),
+      const SizedBox(height: AppTokens.s8),
       // Type filter chips
       SizedBox(
         height: 36,
-        child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: AppTokens.s16),
           children: _typeFilters.map<Widget>((f) => GestureDetector(
             onTap: () => setState(() => _typeFilter = f.key),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              margin: const EdgeInsets.only(right: AppTokens.s8),
+              padding: const EdgeInsets.symmetric(horizontal: AppTokens.s12, vertical: 6),
               decoration: BoxDecoration(
                 color: _typeFilter == f.key ? AppColors.primaryBlue : Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(AppTokens.rMicro),
                 border: Border.all(color: _typeFilter == f.key
                   ? AppColors.primaryBlue : (isDark ? AppColors.darkBorder : AppColors.lightBorder)),
               ),
-              child: Text(f.label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+              child: Text(f.label, style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
                 color: _typeFilter == f.key ? Colors.white : null)),
             ),
-          )).toList()),
+          )).toList(),
+        ),
       ),
       // Status tabs
       TabBar(
-        controller: _statusTab, isScrollable: true, tabAlignment: TabAlignment.start,
+        controller: _statusTab,
+        isScrollable: true,
+        tabAlignment: TabAlignment.start,
         tabs: _statusTabs.map((t) => Tab(text: t.label)).toList(),
       ),
       Expanded(child: BlocConsumer<LeaveBloc, LeaveState>(
@@ -117,7 +130,7 @@ class _RequestListPageState extends State<RequestListPage> with SingleTickerProv
                   return const EmptyState(icon: Icons.inbox_rounded, title: 'Không có yêu cầu nào');
                 }
                 return ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppTokens.s16),
                   itemCount: list.length,
                   itemBuilder: (_, i) => _RequestCard(
                     request: list[i], isDark: isDark,
@@ -157,20 +170,27 @@ class _NavLink extends StatelessWidget {
   final VoidCallback onTap;
   final bool isDark;
   const _NavLink(this.label, this.icon, this.onTap, this.isDark);
-  @override Widget build(BuildContext ctx) => GestureDetector(
-    onTap: onTap,
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkCard : AppColors.lightCard,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+
+  @override Widget build(BuildContext ctx) => Container(
+    decoration: BoxDecoration(
+      color: isDark ? AppColors.darkCard : AppColors.lightCard,
+      borderRadius: BorderRadius.circular(AppTokens.rInput),
+      border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+    ),
+    child: Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppTokens.rInput),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppTokens.s12, vertical: AppTokens.s8),
+          child: Row(children: [
+            Icon(icon, size: 16, color: Theme.of(ctx).colorScheme.primary),
+            const SizedBox(width: AppTokens.s8),
+            Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          ]),
+        ),
       ),
-      child: Row(children: [
-        Icon(icon, size: 16, color: Theme.of(ctx).colorScheme.primary),
-        const SizedBox(width: 6),
-        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-      ]),
     ),
   );
 }
@@ -184,38 +204,50 @@ class _RequestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _showDetail(context),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkCard : AppColors.lightCard,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-        ),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Container(width: 40, height: 40, decoration: BoxDecoration(
-            color: AppColors.primaryBlue.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
-            child: Icon(icon, color: AppColors.primaryBlue, size: 20)),
-          const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(request.leaveType.label, style: Theme.of(context).textTheme.titleSmall,
-              overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 4),
-            Text(request.leaveType == LeaveType.latePermission || request.leaveType == LeaveType.earlyLeaveRequest
-              ? request.fromDate
-              : '${request.fromDate} → ${request.toDate}',
-              style: Theme.of(context).textTheme.bodySmall),
-            const SizedBox(height: 6),
-            Row(children: [
-              StatusBadge.requestStatus(request.status.label),
-              const Spacer(),
-              Text(DateFormat('dd/MM/yyyy').format(request.createdAt),
-                style: Theme.of(context).textTheme.labelSmall),
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppTokens.s8),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCard : AppColors.lightCard,
+        borderRadius: BorderRadius.circular(AppTokens.rCard),
+        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppTokens.rCard),
+          onTap: () => _showDetail(context),
+          child: Padding(
+            padding: const EdgeInsets.all(AppTokens.s16),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryBlue.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(AppTokens.rInput),
+                ),
+                child: Icon(icon, color: AppColors.primaryBlue, size: 20),
+              ),
+              const SizedBox(width: AppTokens.s12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(request.leaveType.label, style: Theme.of(context).textTheme.titleSmall,
+                  overflow: TextOverflow.ellipsis),
+                const SizedBox(height: AppTokens.s4),
+                Text(request.leaveType == LeaveType.latePermission || request.leaveType == LeaveType.earlyLeaveRequest
+                  ? request.fromDate
+                  : '${request.fromDate} → ${request.toDate}',
+                  style: Theme.of(context).textTheme.bodySmall),
+                const SizedBox(height: AppTokens.s8),
+                Row(children: [
+                  StatusBadge.requestStatus(request.status.label),
+                  const Spacer(),
+                  Text(DateFormat('dd/MM/yyyy').format(request.createdAt),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11)),
+                ]),
+              ])),
             ]),
-          ])),
-        ]),
+          ),
+        ),
       ),
     );
   }
@@ -228,17 +260,17 @@ class _RequestCard extends StatelessWidget {
         initialChildSize: 0.6, maxChildSize: 0.9, minChildSize: 0.4,
         builder: (_, ctrl) => Container(
           decoration: BoxDecoration(
-            color: isDark ? AppColors.darkCard : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            color: isDark ? AppColors.darkCard : AppColors.lightCard,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(AppTokens.rCard)),
           ),
-          child: ListView(controller: ctrl, padding: const EdgeInsets.all(24), children: [
+          child: ListView(controller: ctrl, padding: const EdgeInsets.all(AppTokens.s24), children: [
             Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(
               color: isDark ? AppColors.darkBorder : AppColors.lightBorder, borderRadius: BorderRadius.circular(2)))),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppTokens.s16),
             Text(request.leaveType.label, style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppTokens.s12),
             StatusBadge.requestStatus(request.status.label),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppTokens.s16),
             _Row('Từ ngày', request.fromDate),
             _Row('Đến ngày', request.toDate),
             if (request.totalDays > 0) _Row('Số ngày', '${request.totalDays}'),
@@ -247,28 +279,36 @@ class _RequestCard extends StatelessWidget {
             _Row('Lý do', request.reason),
             if (request.approverName != null) _Row('Người duyệt', request.approverName!),
             if (request.rejectReason != null) ...[
-              const SizedBox(height: 8),
-              Container(padding: const EdgeInsets.all(12),
+              const SizedBox(height: AppTokens.s8),
+              Container(padding: const EdgeInsets.all(AppTokens.s12),
                 decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(AppTokens.rMicro)),
                 child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   const Icon(Icons.info_outline_rounded, color: AppColors.error, size: 16),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppTokens.s8),
                   Expanded(child: Text('Lý do từ chối: ${request.rejectReason}',
                     style: const TextStyle(fontSize: 13, color: AppColors.error))),
                 ])),
             ],
-            const SizedBox(height: 20),
+            const SizedBox(height: AppTokens.s24),
             // Cancel button
-            if (request.status == RequestStatus.pending)
+            if (request.status == RequestStatus.pending) ...[
               ElevatedButton.icon(
-                onPressed: () { Navigator.pop(context); onCancel(); },
+                onPressed: () {
+                  Navigator.pop(context);
+                  onCancel();
+                },
                 icon: const Icon(Icons.cancel_outlined, size: 16),
                 label: const Text('Huỷ yêu cầu'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.error,
-                  padding: const EdgeInsets.symmetric(vertical: 12)),
+                  padding: const EdgeInsets.symmetric(vertical: AppTokens.s12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppTokens.rInput),
+                  ),
+                ),
               ),
+            ],
           ]),
         ),
       ),

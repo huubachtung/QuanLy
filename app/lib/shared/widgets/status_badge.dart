@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:app/core/utils/app_colors.dart';
+import 'package:app/core/utils/app_tokens.dart';
 
 class StatusBadge extends StatelessWidget {
   final String label;
@@ -14,7 +15,7 @@ class StatusBadge extends StatelessWidget {
     required this.color,
     this.textColor,
     this.fontSize = 11,
-    this.padding = const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+    this.padding = const EdgeInsets.symmetric(horizontal: AppTokens.s8, vertical: AppTokens.s4),
   });
 
   factory StatusBadge.projectStatus(String status) {
@@ -69,15 +70,16 @@ class StatusBadge extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.4), width: 1),
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppTokens.rMicro),
+        border: Border.all(color: color.withValues(alpha: 0.25), width: 1),
       ),
       child: Text(
         label,
         style: TextStyle(
           fontSize: fontSize,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.2,
           color: textColor ?? color,
         ),
       ),
@@ -103,6 +105,6 @@ class AttendanceStatusBadge extends StatelessWidget {
       default: color = Colors.grey;
     }
     return StatusBadge(label: status, color: color, fontSize: 10,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3));
+      padding: const EdgeInsets.symmetric(horizontal: AppTokens.s8, vertical: 3));
   }
 }

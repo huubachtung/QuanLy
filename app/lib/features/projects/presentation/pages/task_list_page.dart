@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:app/core/utils/app_colors.dart';
+import 'package:app/core/utils/app_tokens.dart';
 import '../../../../core/models/project_model.dart';
 import '../bloc/projects_bloc.dart';
 import '../bloc/projects_state.dart';
@@ -78,7 +79,7 @@ class _TaskListPageState extends State<TaskListPage>
                   itemCount: 6,
                   itemBuilder: (_, __) => const Padding(
                       padding:
-                          EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          EdgeInsets.symmetric(horizontal: AppTokens.s16, vertical: AppTokens.s8),
                       child: CardShimmer()))
               : AnimatedBuilder(
                   animation: _tabCtrl,
@@ -86,11 +87,11 @@ class _TaskListPageState extends State<TaskListPage>
                     final list = _filtered(myTasks, _tabCtrl.index);
                     if (list.isEmpty) {
                       return const EmptyState(
-                          icon: Icons.task_rounded,
+                          icon: Icons.assignment_outlined,
                           title: 'Không có công việc nào');
                     }
                     return ListView.builder(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.symmetric(vertical: AppTokens.s8),
                       itemCount: list.length,
                       itemBuilder: (_, i) => _TaskCard(task: list[i]),
                     );
@@ -116,20 +117,17 @@ class _TaskCard extends StatelessWidget {
     final isUrgent =
         daysLeft >= 0 && daysLeft <= 3 && task.status != TaskStatus.done;
 
-    return GestureDetector(
+    return InkWell(
       onTap: () => context.push('/tasks/${task.id}'),
+      borderRadius: BorderRadius.circular(AppTokens.rCard),
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.symmetric(horizontal: AppTokens.s16, vertical: AppTokens.s8),
+        padding: const EdgeInsets.all(AppTokens.s16),
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkCard : AppColors.lightCard,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppTokens.rCard),
           border: Border.all(
               color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)
-          ],
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
@@ -138,36 +136,36 @@ class _TaskCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleSmall,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis)),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppTokens.s8),
             StatusBadge.taskStatus(
                 task.statusName.isNotEmpty ? task.statusName : task.status.label),
           ]),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppTokens.s4),
           Text(task.projectName,
               style: const TextStyle(
                   fontSize: 12,
                   color: AppColors.primaryBlue,
                   fontWeight: FontWeight.w500)),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppTokens.s12),
           Row(children: [
             Flexible(
                 child: _InfoItem(
-                    Icons.flag_rounded,
+                    Icons.flag_outlined,
                     task.priority,
                     task.priority == 'URGENT' || task.priority == 'HIGH'
                         ? AppColors.error
                         : AppColors.gold)),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppTokens.s8),
             Expanded(
                 child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
               Flexible(
                   child: _InfoItem(
-                      Icons.calendar_today_rounded,
+                      Icons.calendar_today_outlined,
                       deadlineStr,
                       isUrgent
                           ? AppColors.error
                           : Theme.of(context).textTheme.bodySmall?.color)),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppTokens.s12),
               _InfoItem(Icons.trending_up_rounded, '${task.progress}%',
                   AppColors.success),
             ])),
@@ -186,8 +184,8 @@ class _InfoItem extends StatelessWidget {
   @override
   Widget build(BuildContext ctx) =>
       Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 14, color: color),
-        const SizedBox(width: 4),
+        Icon(icon, size: AppTokens.iconMicro, color: color),
+        const SizedBox(width: AppTokens.s4),
         Flexible(
             child: Text(text,
                 style: TextStyle(

@@ -36,55 +36,66 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     if (user.departmentId == null || (user.department != null && user.department!.isNotEmpty)) {
       return user;
     }
+    // 1. Thử lấy chi tiết phòng ban qua /api/department/{id}
     try {
       final response = await apiClient.dio.get('/api/department/${user.departmentId}');
       final data = response.data;
-      final deptData = data['data'] ?? data;
-      final deptName = deptData['name']?.toString() ?? deptData['departmentName']?.toString();
-      if (deptName != null && deptName.isNotEmpty) {
-        return UserModel(
-          id: user.id,
-          username: user.username,
-          displayName: user.displayName,
-          email: user.email,
-          phone: user.phone,
-          avatar: user.avatar,
-          employeeCode: user.employeeCode,
-          role: user.role,
-          employeeType: user.employeeType,
-          department: deptName,
-          departmentId: user.departmentId,
-          hiredDate: user.hiredDate,
-          annualLeaveBalance: user.annualLeaveBalance,
-          baseSalary: user.baseSalary,
-          workStartTime: user.workStartTime,
-          workEndTime: user.workEndTime,
-          leaveBalances: user.leaveBalances,
-        );
+      final deptData = (data is Map && data['data'] != null) ? data['data'] : data;
+      if (deptData is Map) {
+        final deptName = deptData['name']?.toString() ?? deptData['departmentName']?.toString();
+        if (deptName != null && deptName.isNotEmpty) {
+          return user.copyWith(department: deptName);
+        }
       }
     } catch (_) {}
+
+    // 2. Thử lấy danh sách tất cả phòng ban qua /api/department và lọc theo id
+    try {
+      final response = await apiClient.dio.get('/api/department');
+      final data = response.data;
+      final list = (data is Map && data['data'] is List)
+          ? data['data'] as List
+          : (data is List ? data : []);
+      for (final item in list) {
+        if (item is Map) {
+          final id = item['_id']?.toString() ?? item['id']?.toString();
+          if (id == user.departmentId) {
+            final deptName = item['name']?.toString() ?? item['departmentName']?.toString();
+            if (deptName != null && deptName.isNotEmpty) {
+              return user.copyWith(department: deptName);
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
     return user;
   }
 
   Future<UserModel> _fetchFullUserProfile(String userId, UserModel fallback) async {
-    try {
-      final response = await apiClient.dio.get(ApiConstants.userProfile(userId));
-      final data = response.data;
-      if (data['success'] == true && data['data'] != null) {
-        var user = UserModel.fromJson(data['data']);
-        if (user.department == null && user.departmentId != null) {
-          user = await _enrichUserWithDepartment(user);
+    for (final path in [ApiConstants.userProfile(userId), '${ApiConstants.users}/$userId']) {
+      try {
+        final response = await apiClient.dio.get(path);
+        final data = response.data;
+        Map<String, dynamic>? userMap;
+        if (data is Map<String, dynamic>) {
+          if (data['data'] is Map<String, dynamic>) {
+            userMap = data['data'] as Map<String, dynamic>;
+          } else if (data['user'] is Map<String, dynamic>) {
+            userMap = data['user'] as Map<String, dynamic>;
+          } else if (data['username'] != null || data['_id'] != null) {
+            userMap = data;
+          }
         }
-        return user;
-      }
-      if (data is Map<String, dynamic> && data['data'] is Map<String, dynamic>) {
-        var user = UserModel.fromJson(data['data']);
-        if (user.department == null && user.departmentId != null) {
-          user = await _enrichUserWithDepartment(user);
+        if (userMap != null) {
+          var user = UserModel.fromJson(userMap);
+          if (user.department == null && user.departmentId != null) {
+            user = await _enrichUserWithDepartment(user);
+          }
+          return user;
         }
-        return user;
-      }
-    } catch (_) {}
+      } catch (_) {}
+    }
     return fallback;
   }
 
@@ -155,43 +166,36 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     }
     if (userId == null) return null;
 
-    try {
-      final response = await apiClient.dio.get(ApiConstants.userProfile(userId));
-      final data = response.data;
-      
-      if (data['success'] == true && data['data'] != null) {
-        var user = UserModel.fromJson(data['data']);
-        if (user.department == null && user.departmentId != null) {
-          user = await _enrichUserWithDepartment(user);
-        }
-        await tokenStorage.saveUserData(user.toJson());
-        return user;
-      }
-      if (data is Map<String, dynamic> && data['data'] is Map<String, dynamic>) {
-        var user = UserModel.fromJson(data['data']);
-        if (user.department == null && user.departmentId != null) {
-          user = await _enrichUserWithDepartment(user);
-        }
-        await tokenStorage.saveUserData(user.toJson());
-        return user;
-      }
-      if (data is Map<String, dynamic> && data['username'] != null) {
-        var user = UserModel.fromJson(data);
-        if (user.department == null && user.departmentId != null) {
-          user = await _enrichUserWithDepartment(user);
-        }
-        await tokenStorage.saveUserData(user.toJson());
-        return user;
-      }
-    } catch (e) {
-      // Fallback to cache if network fails
-    }
-    
     final cachedData = await tokenStorage.getUserData();
+    UserModel? cachedUser;
     if (cachedData != null) {
-      return UserModel.fromJson(cachedData);
+      try {
+        cachedUser = UserModel.fromJson(cachedData);
+      } catch (_) {}
     }
-    
+
+    try {
+      final dummyUser = cachedUser ?? UserModel(
+        id: userId,
+        username: '',
+        displayName: '',
+        email: '',
+        role: 'member',
+      );
+      final user = await _fetchFullUserProfile(userId, dummyUser);
+      if (user.id.isNotEmpty && (user.username.isNotEmpty || user.displayName.isNotEmpty)) {
+        await tokenStorage.saveUserData(user.toJson());
+        return user;
+      }
+    } catch (_) {}
+
+    if (cachedUser != null) {
+      if (cachedUser.department == null && cachedUser.departmentId != null) {
+        cachedUser = await _enrichUserWithDepartment(cachedUser);
+      }
+      return cachedUser;
+    }
+
     return null;
   }
 }
