@@ -233,9 +233,11 @@ class _RequestCard extends StatelessWidget {
                 Text(request.leaveType.label, style: Theme.of(context).textTheme.titleSmall,
                   overflow: TextOverflow.ellipsis),
                 const SizedBox(height: AppTokens.s4),
-                Text(request.leaveType == LeaveType.latePermission || request.leaveType == LeaveType.earlyLeaveRequest
-                  ? request.fromDate
-                  : '${request.fromDate} → ${request.toDate}',
+                Text(request.shiftChangeDate != null && request.shiftChangeDate!.isNotEmpty
+                  ? 'Nghỉ ${request.shiftChangeDate} → Bù ${request.fromDate}'
+                  : (request.leaveType == LeaveType.latePermission || request.leaveType == LeaveType.earlyLeaveRequest
+                      ? request.fromDate
+                      : '${request.fromDate} → ${request.toDate}'),
                   style: Theme.of(context).textTheme.bodySmall),
                 const SizedBox(height: AppTokens.s8),
                 Row(children: [
@@ -271,13 +273,26 @@ class _RequestCard extends StatelessWidget {
             const SizedBox(height: AppTokens.s12),
             StatusBadge.requestStatus(request.status.label),
             const SizedBox(height: AppTokens.s16),
-            _Row('Từ ngày', request.fromDate),
-            _Row('Đến ngày', request.toDate),
+            if (request.shiftChangeDate != null && request.shiftChangeDate!.isNotEmpty) ...[
+              _Row('Ngày nghỉ (ca cũ)', request.shiftChangeDate!),
+              _Row('Ngày bù (ca mới)', request.fromDate),
+            ] else ...[
+              _Row('Từ ngày', request.fromDate),
+              if (request.leaveType != LeaveType.latePermission && request.leaveType != LeaveType.earlyLeaveRequest)
+                _Row('Đến ngày', request.toDate),
+            ],
             if (request.totalDays > 0) _Row('Số ngày', '${request.totalDays}'),
-            if (request.startTime != null) _Row('Giờ muộn', request.startTime!),
-            if (request.endTime != null) _Row('Giờ về', request.endTime!),
+            if (request.leaveType == LeaveType.latePermission && request.startTime != null)
+              _Row('Giờ đến dự kiến', request.startTime!),
+            if (request.leaveType == LeaveType.earlyLeaveRequest && request.startTime != null)
+              _Row('Giờ về dự kiến', request.startTime!),
+            if (request.leaveType == LeaveType.shiftChange) ...[
+              if (request.startTime != null) _Row('Giờ bắt đầu ca', request.startTime!),
+              if (request.endTime != null) _Row('Giờ kết thúc ca', request.endTime!),
+            ],
             _Row('Lý do', request.reason),
-            if (request.approverName != null) _Row('Người duyệt', request.approverName!),
+            if (request.approverName != null && request.approverName!.isNotEmpty)
+              _Row('Người duyệt', request.approverName!),
             if (request.rejectReason != null) ...[
               const SizedBox(height: AppTokens.s8),
               Container(padding: const EdgeInsets.all(AppTokens.s12),

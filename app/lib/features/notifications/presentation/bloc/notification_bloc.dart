@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/services/notification_background_worker.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../domain/usecases/notification_usecases.dart';
 import 'notification_event.dart';
@@ -44,6 +45,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
       (data) {
         _knownNotificationIds.addAll(data.notifications.map((n) => n.id));
         _baselineLoaded = true;
+        NotificationBackgroundWorker.syncKnownIds(_knownNotificationIds);
 
         emit(NotificationLoaded(
           notifications: data.notifications,
@@ -73,6 +75,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
             ..clear()
             ..addAll(fetchedIds);
           _baselineLoaded = true;
+          NotificationBackgroundWorker.syncKnownIds(_knownNotificationIds);
 
           debugPrint(
             '🔔 [NotificationBloc] Baseline nạp xong: ${_knownNotificationIds.length} thông báo, unread: ${data.unreadCount}',
@@ -92,6 +95,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
 
         // Cập nhật tập ID đã biết
         _knownNotificationIds.addAll(fetchedIds);
+        NotificationBackgroundWorker.syncKnownIds(_knownNotificationIds);
 
         if (newItems.isNotEmpty) {
           debugPrint('🔔 [NotificationBloc] Phát hiện ${newItems.length} thông báo mới!');
@@ -117,6 +121,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     debugPrint('🔔 [NotificationBloc] Reset trạng thái thông báo');
     _knownNotificationIds.clear();
     _baselineLoaded = false;
+    NotificationBackgroundWorker.clearKnownIds();
     emit(NotificationInitial());
   }
 

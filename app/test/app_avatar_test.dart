@@ -29,12 +29,12 @@ void main() {
     });
 
     test('resolveAvatarUrl: Absolute HTTP/HTTPS URLs', () {
-      const url = 'https://res.cloudinary.com/demo/image/upload/sample.jpg';
+      const url = 'https://example.com/demo/image/upload/sample.jpg';
       expect(AppAvatar.resolveAvatarUrl(url), url);
     });
 
     test('resolveAvatarUrl: Protocol-relative URL', () {
-      const url = '//res.cloudinary.com/demo/image/upload/sample.jpg';
+      const url = '//example.com/demo/image/upload/sample.jpg';
       expect(AppAvatar.resolveAvatarUrl(url), 'https:$url');
     });
 
@@ -52,9 +52,9 @@ void main() {
 
     test('resolveAvatarUrl: JSON Cloudinary object string', () {
       const jsonStr =
-          '{"url": "https://res.cloudinary.com/demo/image/sample.jpg", "public_id": "123"}';
+          '{"url": "https://example.com/demo/image/sample.jpg", "public_id": "123"}';
       expect(AppAvatar.resolveAvatarUrl(jsonStr),
-          'https://res.cloudinary.com/demo/image/sample.jpg');
+          'https://example.com/demo/image/sample.jpg');
     });
 
     test('resolveAvatarUrl: Data URI', () {
@@ -74,43 +74,46 @@ void main() {
     });
 
     test('getInitials logic', () {
-      expect(AppAvatar.getInitials('Nguyễn Sơn Tùng'), 'NT');
-      expect(AppAvatar.getInitials('tungns'), 'TU');
+      expect(AppAvatar.getInitials('Nguyen Test'), 'NT');
+      expect(AppAvatar.getInitials('testuser'), 'TE');
       expect(AppAvatar.getInitials('T'), 'T');
       expect(AppAvatar.getInitials(''), 'NV');
       expect(AppAvatar.getInitials(null), 'NV');
     });
   });
 
-  group('UserModel parsing based on BebugLog.md', () {
-    test('Correctly parses userId object from BebugLog.md', () {
+  group('UserModel parsing mock data', () {
+    test('Correctly parses userId object from mock data', () {
       final json = {
-        "_id": "6a32b74f6c31356209a1dc1b",
-        "username": "tungns",
-        "department": "69f095c8e0681e964c7e6b27",
-        "displayName": "Nguyễn Sơn Tùng",
-        "email": "tung912n@gmail.com",
+        "_id": "mock_user_id_123",
+        "username": "testuser",
+        "department": {
+          "_id": "mock_dept_id_123",
+          "name": "Phong Ban Test",
+        },
+        "displayName": "Nguyen Van Test",
+        "email": "testuser@example.com",
         "annualLeaveBalance": 12,
-        "employeeCode": "31",
+        "employeeCode": "EMP001",
       };
 
       final user = UserModel.fromJson(json);
 
-      expect(user.id, '6a32b74f6c31356209a1dc1b');
-      expect(user.username, 'tungns');
-      expect(user.displayName, 'Nguyễn Sơn Tùng');
-      expect(user.email, 'tung912n@gmail.com');
-      expect(user.employeeCode, '31');
+      expect(user.id, 'mock_user_id_123');
+      expect(user.username, 'testuser');
+      expect(user.displayName, 'Nguyen Van Test');
+      expect(user.email, 'testuser@example.com');
+      expect(user.employeeCode, 'EMP001');
       expect(user.annualLeaveBalance, 12.0);
-      expect(user.departmentId, '69f095c8e0681e964c7e6b27');
+      expect(user.departmentId, 'mock_dept_id_123');
     });
 
-    test('Correctly parses leaveBalances from BebugLog.md', () {
+    test('Correctly parses leaveBalances from mock data', () {
       final json = {
-        "_id": "6a32b74f6c31356209a1dc1b",
-        "username": "tungns",
-        "displayName": "Nguyễn Sơn Tùng",
-        "email": "tung912n@gmail.com",
+        "_id": "mock_user_id_123",
+        "username": "testuser",
+        "displayName": "Nguyen Van Test",
+        "email": "testuser@example.com",
         "role": "member",
         "leaveBalances": [
           {
@@ -118,14 +121,14 @@ void main() {
             "totalDays": 12,
             "daysPerMonth": 0,
             "usedDays": 0,
-            "_id": "6a9990d5021dca1b0522e7ca"
+            "_id": "mock_leave_id_1"
           },
           {
             "leaveType": "UNPAID_LEAVE",
             "totalDays": 30,
             "daysPerMonth": 0,
             "usedDays": 1,
-            "_id": "6a9990d5021dca1b0522e7dc"
+            "_id": "mock_leave_id_2"
           }
         ]
       };
@@ -147,17 +150,17 @@ void main() {
     });
   });
 
-  group('ProfilePage with BebugLog.md Data Rendering', () {
-    testWidgets('ProfilePage displays accurate fields from BebugLog',
+  group('ProfilePage with Mock Data Rendering', () {
+    testWidgets('ProfilePage displays accurate fields from mock user',
         (WidgetTester tester) async {
       final user = UserModel.fromJson(const {
-        "_id": "6a32b74f6c31356209a1dc1b",
-        "username": "tungns",
-        "department": "lada123kdsn211bnbxz",
-        "displayName": "Nguyễn Sơn Tùng",
-        "email": "xxxxxxxx@gmail.com",
+        "_id": "mock_user_id_123",
+        "username": "testuser",
+        "department": "mock_dept_id_123",
+        "displayName": "Nguyen Van Test",
+        "email": "testuser@example.com",
         "annualLeaveBalance": 12,
-        "employeeCode": "31",
+        "employeeCode": "EMP001",
         "role": "member",
         "leaveBalances": [
           {
@@ -165,7 +168,7 @@ void main() {
             "totalDays": 12,
             "daysPerMonth": 0,
             "usedDays": 0,
-            "_id": "6a9990d5021dca1b0522e7ca"
+            "_id": "mock_leave_id_1"
           }
         ]
       });
@@ -190,9 +193,9 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Nguyễn Sơn Tùng'), findsOneWidget);
-      expect(find.text('Mã NV: 31'), findsOneWidget);
-      expect(find.text('xxxxxxxx@gmail.com'), findsOneWidget);
+      expect(find.text('Nguyen Van Test'), findsOneWidget);
+      expect(find.text('Mã NV: EMP001'), findsOneWidget);
+      expect(find.text('testuser@example.com'), findsOneWidget);
       expect(find.text('12 ngày'), findsOneWidget);
       expect(find.text('Hạn mức ngày phép'), findsOneWidget);
       expect(find.text('Nghỉ phép năm'), findsOneWidget);

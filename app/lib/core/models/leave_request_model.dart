@@ -8,6 +8,7 @@ class LeaveRequestModel {
   final double totalDays;
   final LeaveType leaveType;
   final LeaveDuration leaveDuration;
+  final String? shiftChangeDate;
   final String? startTime;
   final String? endTime;
   final String reason;
@@ -25,6 +26,7 @@ class LeaveRequestModel {
     required this.employeeCode,
     required this.fromDate,
     required this.toDate,
+    this.shiftChangeDate,
     required this.totalDays,
     required this.leaveType,
     this.leaveDuration = LeaveDuration.fullDay,
@@ -58,12 +60,24 @@ class LeaveRequestModel {
           '';
     }
 
+    String? parsedApproverId;
+    String? parsedApproverName;
+    if (json['approverId'] is Map) {
+      parsedApproverId = json['approverId']['_id']?.toString();
+      parsedApproverName = json['approverId']['displayName']?.toString() ??
+          json['approverId']['username']?.toString();
+    } else {
+      parsedApproverId = json['approverId']?.toString();
+      parsedApproverName = json['approverName']?.toString();
+    }
+
     return LeaveRequestModel(
       id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
       userId: parsedUserId,
       employeeCode: parsedEmployeeCode,
       fromDate: json['fromDate']?.toString() ?? json['startDate']?.toString() ?? '',
       toDate: json['toDate']?.toString() ?? json['endDate']?.toString() ?? '',
+      shiftChangeDate: json['shiftChangeDate']?.toString(),
       totalDays: (json['totalDays'] ?? 0).toDouble(),
       leaveType: _parseLeaveType(json['leaveType']?.toString() ?? json['type']?.toString()),
       leaveDuration: _parseLeaveDuration(json['leaveDuration']?.toString()),
@@ -71,8 +85,8 @@ class LeaveRequestModel {
       endTime: json['endTime']?.toString(),
       reason: json['reason']?.toString() ?? '',
       status: _parseRequestStatus(json['status']?.toString()),
-      approverId: json['approverId']?.toString(),
-      approverName: json['approverName']?.toString(),
+      approverId: parsedApproverId,
+      approverName: parsedApproverName,
       rejectReason: json['rejectReason']?.toString(),
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString())?.toLocal() ?? DateTime.now()
@@ -93,6 +107,10 @@ class LeaveRequestModel {
       'leaveDuration': leaveDuration.apiValue,
       'reason': reason,
     };
+
+    if (shiftChangeDate != null && shiftChangeDate!.isNotEmpty) {
+      map['shiftChangeDate'] = shiftChangeDate;
+    }
 
     if (startTime != null && startTime!.isNotEmpty) {
       map['startTime'] = startTime;
@@ -224,6 +242,15 @@ extension LeaveTypeExt on LeaveType {
   bool get isSpecialRequest =>
       this == LeaveType.shiftChange ||
       this == LeaveType.onlineWork ||
+      this == LeaveType.latePermission ||
+      this == LeaveType.earlyLeaveRequest;
+
+  bool get isSingleDayOnly =>
+      this == LeaveType.latePermission ||
+      this == LeaveType.earlyLeaveRequest;
+
+  bool get isTimeBasedRequest =>
+      this == LeaveType.shiftChange ||
       this == LeaveType.latePermission ||
       this == LeaveType.earlyLeaveRequest;
 

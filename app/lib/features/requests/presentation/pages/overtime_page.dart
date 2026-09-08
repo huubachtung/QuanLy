@@ -121,9 +121,17 @@ class _OvertimePageState extends State<OvertimePage> {
       if (!r.isEditable) continue;
 
       final hours = double.tryParse(_hoursCtrl[r.date]?.text.trim() ?? '${r.requestedOtHours}') ?? r.requestedOtHours;
-      final reason = _reasonCtrl[r.date]?.text.trim() ?? r.reason;
+      final reason = (_reasonCtrl[r.date]?.text.trim() ?? r.reason).trim();
 
       if (hours > 0) {
+        if (reason.isEmpty) {
+          setState(() => _errors[r.date] = 'Vui lòng nhập lý do tăng ca');
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Vui lòng nhập lý do tăng ca cho ngày ${r.date}'),
+            backgroundColor: AppColors.error,
+          ));
+          return;
+        }
         entries.add({
           'date': r.date,
           'hours': hours,
@@ -698,8 +706,8 @@ class _OtCard extends StatelessWidget {
                 controller: reasonCtrl,
                 keyboardType: TextInputType.text,
                 textCapitalization: TextCapitalization.sentences,
-                autocorrect: false,
-                enableSuggestions: false,
+                autocorrect: true,
+                enableSuggestions: true,
                 decoration: InputDecoration(
                   labelText: 'Lý do tăng ca *',
                   isDense: true,

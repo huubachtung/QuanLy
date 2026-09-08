@@ -77,9 +77,19 @@
 	<string>Ứng dụng cần quyền truy cập camera để chấm công nhận diện khuôn mặt và chụp ảnh đính kèm đơn.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Ứng dụng cần quyền truy cập thư viện ảnh để tải lên ảnh minh chứng hoặc ảnh đại diện.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Ứng dụng cần quyền lưu ảnh vào thư viện khi xuất phiếu lương hoặc lưu minh chứng.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>
+		<string>processing</string>
+	</array>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.jusstv.QuanLy.notificationRefresh</string>
+		<string>be.tramckfd.workmanager.iOSBackgroundAppRefresh</string>
 	</array>
 </dict>
 </plist>

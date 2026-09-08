@@ -10,6 +10,7 @@ import 'app/router.dart';
 import 'package:app/core/utils/theme.dart';
 import 'injection_container.dart' as di;
 import 'core/services/notification_polling_service.dart';
+import 'core/services/notification_background_worker.dart';
 import 'core/models/notification_model.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_event.dart';
@@ -30,6 +31,7 @@ void main() async {
   await initializeDateFormatting('vi_VN', null);
   await initializeDateFormatting('vi', null);
   await di.init();
+  await NotificationBackgroundWorker.initialize();
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
@@ -93,11 +95,12 @@ class _JussTVAppState extends State<JussTVApp> {
       },
     );
 
-    // Tạo Notification Channel cho Android
+    // Tạo Notification Channel & Yêu cầu quyền runtime cho Android (Android 13+ / Flyme 10.5)
     final androidPlugin = _localNotifications
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>();
     if (androidPlugin != null) {
+      await androidPlugin.requestNotificationsPermission();
       await androidPlugin.createNotificationChannel(
         const AndroidNotificationChannel(
           'high_importance_channel',
@@ -193,7 +196,7 @@ class _JussTVAppState extends State<JussTVApp> {
                           .add(const PollNotifications(isInitial: true));
                     }
 
-                    // 3. Khởi động chu kỳ polling 5 phút / lần
+                    // 3. Khởi động chu kỳ polling 5 phút / lần (Foreground)
                     NotificationPollingService.instance.startPolling(
                       onPollTick: () {
                         if (context.mounted) {
@@ -203,11 +206,15 @@ class _JussTVAppState extends State<JussTVApp> {
                         }
                       },
                     );
+
+                    // 4. Lên lịch Periodic Task cho Background Worker (15 phút / lần)
+                    NotificationBackgroundWorker.registerPeriodicTask();
                   }
                 } else if (state is AuthUnauthenticated) {
                   if (_dataLoaded) {
                     // Dừng chu kỳ polling và reset BLoC
                     NotificationPollingService.instance.stopPolling();
+                    NotificationBackgroundWorker.cancelPeriodicTask();
                     if (context.mounted) {
                       context
                           .read<NotificationBloc>()

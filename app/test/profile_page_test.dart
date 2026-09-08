@@ -122,9 +122,9 @@ void main() {
       (WidgetTester tester) async {
     const userModel = UserModel(
       id: '123',
-      username: 'tungns',
-      displayName: 'Nguyễn Sơn Tùng',
-      email: 'tungxxxx@gmail.com',
+      username: 'testuser',
+      displayName: 'Nguyen Van Test',
+      email: 'test@example.com',
       role: 'member',
       employeeType: 'official',
       leaveBalances: [

@@ -572,10 +572,13 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
   LeaveDuration _duration = LeaveDuration.fullDay;
   DateTime _fromDate = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
   DateTime _toDate = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+  String _shiftChangeMode = 'TIME'; // 'TIME' (cùng ngày) hoặc 'DATE' (khác ngày)
+  DateTime? _shiftChangeDate;
   String _lateTime = '09:30';
   String _earlyTime = '16:30';
   String _shiftStartTime = '08:30';
   String _shiftEndTime = '';
+  String? _formError;
   final _reasonCtrl = TextEditingController();
 
   @override
@@ -619,40 +622,22 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
 
   String? get _computedStartTime {
     if (_selectedType == LeaveType.shiftChange) {
-      return _shiftStartTime;
+      return _shiftStartTime.trim().isNotEmpty ? _shiftStartTime.trim() : null;
     }
     if (_selectedType == LeaveType.latePermission) {
-      return widget.user.workStartTime;
+      return _lateTime.trim().isNotEmpty ? _lateTime.trim() : null;
     }
     if (_selectedType == LeaveType.earlyLeaveRequest) {
-      return _earlyTime;
+      return _earlyTime.trim().isNotEmpty ? _earlyTime.trim() : null;
     }
-    switch (_duration) {
-      case LeaveDuration.morning:
-      case LeaveDuration.fullDay:
-        return widget.user.workStartTime;
-      case LeaveDuration.afternoon:
-        return '13:30';
-    }
+    return null;
   }
 
   String? get _computedEndTime {
     if (_selectedType == LeaveType.shiftChange) {
-      return _shiftEndTime.isNotEmpty ? _shiftEndTime : null;
+      return _shiftEndTime.trim().isNotEmpty ? _shiftEndTime.trim() : null;
     }
-    if (_selectedType == LeaveType.latePermission) {
-      return _lateTime;
-    }
-    if (_selectedType == LeaveType.earlyLeaveRequest) {
-      return widget.user.workEndTime;
-    }
-    switch (_duration) {
-      case LeaveDuration.afternoon:
-      case LeaveDuration.fullDay:
-        return widget.user.workEndTime;
-      case LeaveDuration.morning:
-        return '12:00';
-    }
+    return null;
   }
 
   double _calculateWorkingDays(
@@ -671,7 +656,6 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
     DateTime cur = s;
     while (!cur.isAfter(e)) {
       if (cur.weekday != DateTime.sunday) {
-        // Sunday is 7 in Dart
         count++;
       }
       cur = DateTime(cur.year, cur.month, cur.day + 1);
@@ -680,22 +664,31 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
   }
 
   void _submit() {
+    setState(() => _formError = null);
+
     if (_reasonCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Vui lòng nhập lý do'),
-          backgroundColor: AppColors.error));
+      setState(() => _formError = 'Vui lòng nhập lý do');
+      return;
+    }
+
+    if (_selectedType == LeaveType.shiftChange &&
+        _shiftChangeMode == 'DATE' &&
+        _shiftChangeDate == null) {
+      setState(() => _formError = 'Vui lòng chọn ngày ca cũ cần xin nghỉ');
       return;
     }
 
     // Auto-adjust dates
     DateTime effectiveToDate = _toDate;
-    if (_selectedType.isSpecialRequest || _duration != LeaveDuration.fullDay) {
+    if (_selectedType.isSingleDayOnly ||
+        _selectedType == LeaveType.shiftChange ||
+        _duration != LeaveDuration.fullDay) {
       effectiveToDate = _fromDate;
     }
 
     // Auto-adjust duration
     LeaveDuration effectiveDuration = _duration;
-    if (!_selectedType.isSpecialRequest &&
+    if (!_selectedType.isTimeBasedRequest &&
         (_fromDate.year != effectiveToDate.year ||
             _fromDate.month != effectiveToDate.month ||
             _fromDate.day != effectiveToDate.day)) {
@@ -703,15 +696,13 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
     }
 
     final totalDays = _isTimeInput
-        ? 0.0
+        ? (_selectedType == LeaveType.shiftChange ? 0.0 : 1.0)
         : _calculateWorkingDays(_fromDate, effectiveToDate, effectiveDuration);
 
     if (_selectedType.deductsAnnualLeave && totalDays > 0) {
       if (totalDays > widget.availableAnnualLeave) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-                'Không đủ phép. Khả dụng: ${_formatDays(widget.availableAnnualLeave)} ngày (đã trừ ngày chờ duyệt)'),
-            backgroundColor: AppColors.error));
+        setState(() => _formError =
+            'Không đủ phép. Khả dụng: ${_formatDays(widget.availableAnnualLeave)} ngày (đã trừ ngày chờ duyệt)');
         return;
       }
     }
@@ -722,6 +713,11 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
       employeeCode: widget.user.employeeCode ?? '',
       fromDate: DateFormat('yyyy-MM-dd').format(_fromDate),
       toDate: DateFormat('yyyy-MM-dd').format(effectiveToDate),
+      shiftChangeDate: (_selectedType == LeaveType.shiftChange &&
+              _shiftChangeMode == 'DATE' &&
+              _shiftChangeDate != null)
+          ? DateFormat('yyyy-MM-dd').format(_shiftChangeDate!)
+          : null,
       totalDays: totalDays,
       leaveType: _selectedType,
       leaveDuration: effectiveDuration,
@@ -742,8 +738,7 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(state.message), backgroundColor: AppColors.success));
       } else if (state is LeaveError) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(state.message), backgroundColor: AppColors.error));
+        setState(() => _formError = state.message);
       }
     }, builder: (context, state) {
       final submitting = state is LeaveLoading;
@@ -775,6 +770,41 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
                 Text('Tạo đơn mới',
                     style: Theme.of(context).textTheme.headlineMedium),
                 const SizedBox(height: AppTokens.s16),
+
+                // Error Banner
+                if (_formError != null) ...[
+                  Container(
+                    margin: const EdgeInsets.only(bottom: AppTokens.s16),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppTokens.rMicro),
+                      border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _formError!,
+                            style: const TextStyle(
+                                color: AppColors.error,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, size: 16, color: AppColors.error),
+                          onPressed: () => setState(() => _formError = null),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
                 // Group selector
                 Row(children: [
                   Expanded(
@@ -785,6 +815,7 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
                           () => setState(() {
                                 _group = 'leave';
                                 _selectedType = LeaveType.annualLeave;
+                                _formError = null;
                                 if (_duration != LeaveDuration.fullDay) {
                                   _toDate = _fromDate;
                                 }
@@ -798,6 +829,9 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
                           () => setState(() {
                                 _group = 'special';
                                 _selectedType = LeaveType.shiftChange;
+                                _shiftChangeMode = 'TIME';
+                                _shiftChangeDate = null;
+                                _formError = null;
                                 _toDate = _fromDate;
                                 _duration = LeaveDuration.fullDay;
                               }))),
@@ -813,7 +847,8 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
                         .map((t) => GestureDetector(
                             onTap: () => setState(() {
                                   _selectedType = t;
-                                  if (t.isSpecialRequest) {
+                                  _formError = null;
+                                  if (t.isSingleDayOnly || t == LeaveType.shiftChange) {
                                     _toDate = _fromDate;
                                     _duration = LeaveDuration.fullDay;
                                   }
@@ -853,9 +888,10 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
                             _fromDate,
                             (d) => setState(() {
                                   _fromDate = d;
+                                  _formError = null;
                                   if (_toDate.isBefore(d) ||
                                       _duration != LeaveDuration.fullDay ||
-                                      _selectedType.isSpecialRequest) {
+                                      _selectedType.isSingleDayOnly) {
                                     _toDate = d;
                                   }
                                 }))),
@@ -866,62 +902,168 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
                             _toDate,
                             (d) => setState(() {
                                   _toDate = d;
+                                  _formError = null;
                                   if (_toDate.isAfter(_fromDate)) {
                                     _duration = LeaveDuration.fullDay;
                                   }
                                 }))),
                   ]),
                   const SizedBox(height: AppTokens.s12),
-                  if (!_selectedType.isSpecialRequest ||
-                      _selectedType == LeaveType.onlineWork) ...[
-                    Text('Thời lượng',
-                        style: Theme.of(context).textTheme.titleSmall),
-                    const SizedBox(height: AppTokens.s8),
-                    Row(
-                        children: LeaveDuration.values
-                            .map((d) => Expanded(
-                                child: GestureDetector(
-                                    onTap: () => setState(() {
-                                          _duration = d;
-                                          if (d != LeaveDuration.fullDay) {
-                                            _toDate = _fromDate;
-                                          }
-                                        }),
-                                    child: AnimatedContainer(
-                                      duration:
-                                          const Duration(milliseconds: 150),
-                                      margin: const EdgeInsets.only(right: 6),
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 10),
-                                      decoration: BoxDecoration(
-                                        color: _duration == d
-                                            ? AppColors.primaryBlue
-                                            : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(AppTokens.rMicro),
-                                        border: Border.all(
+                  Text('Thời lượng',
+                      style: Theme.of(context).textTheme.titleSmall),
+                  const SizedBox(height: AppTokens.s8),
+                  Row(
+                      children: LeaveDuration.values
+                          .map((d) => Expanded(
+                              child: GestureDetector(
+                                  onTap: () => setState(() {
+                                        _duration = d;
+                                        if (d != LeaveDuration.fullDay) {
+                                          _toDate = _fromDate;
+                                        }
+                                      }),
+                                  child: AnimatedContainer(
+                                    duration:
+                                        const Duration(milliseconds: 150),
+                                    margin: const EdgeInsets.only(right: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10),
+                                    decoration: BoxDecoration(
+                                      color: _duration == d
+                                          ? AppColors.primaryBlue
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(AppTokens.rMicro),
+                                      border: Border.all(
+                                          color: _duration == d
+                                              ? AppColors.primaryBlue
+                                              : (widget.isDark
+                                                  ? AppColors.darkBorder
+                                                  : AppColors.lightBorder)),
+                                    ),
+                                    child: Text(d.label,
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
                                             color: _duration == d
-                                                ? AppColors.primaryBlue
-                                                : (widget.isDark
-                                                    ? AppColors.darkBorder
-                                                    : AppColors.lightBorder)),
-                                      ),
-                                      child: Text(d.label,
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w600,
-                                              color: _duration == d
-                                                  ? Colors.white
-                                                  : null)),
-                                    ))))
-                            .toList()),
-                    const SizedBox(height: AppTokens.s12),
-                  ],
+                                                ? Colors.white
+                                                : null)),
+                                  ))))
+                          .toList()),
+                  const SizedBox(height: AppTokens.s12),
                 ] else ...[
-                  _DateField(
-                      'Ngày', _fromDate, (d) => setState(() => _fromDate = d)),
-                  const SizedBox(height: 12),
                   if (_selectedType == LeaveType.shiftChange) ...[
+                    // Chế độ đổi ca
+                    Text('Chế độ đổi ca',
+                        style: Theme.of(context).textTheme.titleSmall),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() {
+                              _shiftChangeMode = 'TIME';
+                              _shiftChangeDate = null;
+                            }),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              padding: const EdgeInsets.symmetric(vertical: 9),
+                              decoration: BoxDecoration(
+                                color: _shiftChangeMode == 'TIME'
+                                    ? AppColors.primaryBlue
+                                    : Colors.transparent,
+                                borderRadius:
+                                    BorderRadius.circular(AppTokens.rMicro),
+                                border: Border.all(
+                                  color: _shiftChangeMode == 'TIME'
+                                      ? AppColors.primaryBlue
+                                      : (widget.isDark
+                                          ? AppColors.darkBorder
+                                          : AppColors.lightBorder),
+                                ),
+                              ),
+                              child: Text(
+                                'Đổi giờ (Cùng ngày)',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: _shiftChangeMode == 'TIME'
+                                      ? Colors.white
+                                      : null,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() {
+                              _shiftChangeMode = 'DATE';
+                              _shiftChangeDate ??= _fromDate;
+                            }),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              padding: const EdgeInsets.symmetric(vertical: 9),
+                              decoration: BoxDecoration(
+                                color: _shiftChangeMode == 'DATE'
+                                    ? AppColors.primaryBlue
+                                    : Colors.transparent,
+                                borderRadius:
+                                    BorderRadius.circular(AppTokens.rMicro),
+                                border: Border.all(
+                                  color: _shiftChangeMode == 'DATE'
+                                      ? AppColors.primaryBlue
+                                      : (widget.isDark
+                                          ? AppColors.darkBorder
+                                          : AppColors.lightBorder),
+                                ),
+                              ),
+                              child: Text(
+                                'Đổi ngày làm bù',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: _shiftChangeMode == 'DATE'
+                                      ? Colors.white
+                                      : null,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    if (_shiftChangeMode == 'DATE') ...[
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _DateField(
+                              'Ngày nghỉ (Ca cũ)',
+                              _shiftChangeDate ?? _fromDate,
+                              (d) => setState(() => _shiftChangeDate = d),
+                            ),
+                          ),
+                          const SizedBox(width: AppTokens.s12),
+                          Expanded(
+                            child: _DateField(
+                              'Ngày làm bù (Ca mới)',
+                              _fromDate,
+                              (d) => setState(() => _fromDate = d),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ] else
+                      _DateField(
+                        'Ngày áp dụng',
+                        _fromDate,
+                        (d) => setState(() => _fromDate = d),
+                      ),
+                    const SizedBox(height: 12),
                     Row(
                       children: [
                         Expanded(
@@ -932,7 +1074,7 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
                             autocorrect: false,
                             enableSuggestions: false,
                             decoration: const InputDecoration(
-                              labelText: 'Giờ bắt đầu (HH:mm)',
+                              labelText: 'Giờ bắt đầu ca mới (HH:mm)',
                               prefixIcon:
                                   Icon(Icons.access_time_rounded, size: 18),
                             ),
@@ -948,7 +1090,7 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
                             autocorrect: false,
                             enableSuggestions: false,
                             decoration: const InputDecoration(
-                              labelText: 'Giờ kết thúc (Tuỳ chọn)',
+                              labelText: 'Giờ kết thúc ca mới',
                               prefixIcon:
                                   Icon(Icons.access_time_rounded, size: 18),
                             ),
@@ -957,7 +1099,12 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
                         ),
                       ],
                     ),
-                  ] else
+                  ] else ...[
+                    _DateField(
+                        'Ngày áp dụng',
+                        _fromDate,
+                        (d) => setState(() => _fromDate = d)),
+                    const SizedBox(height: 12),
                     TextFormField(
                       key: ValueKey(_selectedType),
                       initialValue: _selectedType == LeaveType.latePermission
@@ -968,7 +1115,7 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
                       enableSuggestions: false,
                       decoration: InputDecoration(
                         labelText: _selectedType == LeaveType.latePermission
-                            ? 'Giờ đi muộn dự kiến (HH:mm)'
+                            ? 'Giờ đến muộn dự kiến (HH:mm)'
                             : 'Giờ về sớm dự kiến (HH:mm)',
                         prefixIcon:
                             const Icon(Icons.access_time_rounded, size: 18),
@@ -981,6 +1128,7 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
                         }
                       },
                     ),
+                  ],
                   const SizedBox(height: 12),
                 ],
                 TextField(
@@ -988,8 +1136,8 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
                   maxLines: 3,
                   keyboardType: TextInputType.multiline,
                   textCapitalization: TextCapitalization.sentences,
-                  autocorrect: false,
-                  enableSuggestions: false,
+                  autocorrect: true,
+                  enableSuggestions: true,
                   decoration: const InputDecoration(
                       labelText: 'Lý do *', alignLabelWithHint: true),
                 ),
@@ -1008,7 +1156,7 @@ class _CreateLeaveSheetState extends State<_CreateLeaveSheet> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Số ngày nghỉ (trừ CN): ${_calculateWorkingDays(_fromDate, _duration != LeaveDuration.fullDay ? _fromDate : _toDate, _duration)} ngày',
+                            'Số ngày (trừ CN): ${_calculateWorkingDays(_fromDate, _duration != LeaveDuration.fullDay ? _fromDate : _toDate, _duration)} ngày',
                             style: const TextStyle(
                                 color: AppColors.primaryBlue,
                                 fontWeight: FontWeight.w600,

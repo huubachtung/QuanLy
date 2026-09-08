@@ -44,8 +44,9 @@ dependencies:
   connectivity_plus: ^7.3.1
   pretty_dio_logger: ^1.4.0
 
-  # Local Notifications
+  # Local Notifications & Background Tasks
   flutter_local_notifications: ^17.2.3
+  workmanager: ^0.10.10
 
 dev_dependencies:
   flutter_test:
