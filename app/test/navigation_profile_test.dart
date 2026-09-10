@@ -48,20 +48,62 @@ void main() {
     final router = GoRouter(
       initialLocation: '/requests',
       routes: [
-        ShellRoute(
-          builder: (context, state, child) => BlocProvider(
-            create: (_) => HomeBloc(),
-            child: HomePage(child: child),
+        GoRoute(
+          path: '/profile',
+          builder: (context, state) => const Scaffold(
+            body: ProfilePage(),
           ),
-          routes: [
-            GoRoute(
-              path: '/requests',
-              builder: (context, state) =>
-                  const Scaffold(body: Text('Requests Screen Content')),
+        ),
+        StatefulShellRoute.indexedStack(
+          builder: (context, state, navigationShell) => BlocProvider(
+            create: (_) => HomeBloc(),
+            child: HomePage(navigationShell: navigationShell),
+          ),
+          branches: [
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/projects',
+                  builder: (context, state) =>
+                      const Scaffold(body: Text('Projects Screen Content')),
+                ),
+              ],
             ),
-            GoRoute(
-              path: '/profile',
-              builder: (context, state) => const ProfilePage(),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/calendar',
+                  builder: (context, state) =>
+                      const Scaffold(body: Text('Calendar Screen Content')),
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/notifications',
+                  builder: (context, state) =>
+                      const Scaffold(body: Text('Notifications Screen Content')),
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/attendance',
+                  builder: (context, state) =>
+                      const Scaffold(body: Text('Attendance Screen Content')),
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/requests',
+                  builder: (context, state) =>
+                      const Scaffold(body: Text('Requests Screen Content')),
+                ),
+              ],
             ),
           ],
         ),

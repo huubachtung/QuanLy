@@ -16,8 +16,8 @@ import '../bloc/home_event.dart';
 import '../bloc/home_state.dart';
 
 class HomePage extends StatefulWidget {
-  final Widget child;
-  const HomePage({super.key, required this.child});
+  final StatefulNavigationShell navigationShell;
+  const HomePage({super.key, required this.navigationShell});
   @override
   State<HomePage> createState() => _HomePageState();
 }
@@ -58,20 +58,19 @@ class _HomePageState extends State<HomePage> {
 
   void _onTabTap(BuildContext context, int idx) {
     context.read<HomeBloc>().add(ChangeTabEvent(idx));
-    context.go(_tabs[idx].path);
+    widget.navigationShell.goBranch(
+      idx,
+      initialLocation: idx == widget.navigationShell.currentIndex,
+    );
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final loc = GoRouterState.of(context).matchedLocation;
-    final idx =
-        _tabs.indexWhere((t) => t.path == loc || loc.startsWith('${t.path}/'));
-    if (idx != -1) {
-      final currentIdx = context.read<HomeBloc>().state.currentIndex;
-      if (idx != currentIdx) {
-        context.read<HomeBloc>().add(ChangeTabEvent(idx));
-      }
+    final idx = widget.navigationShell.currentIndex;
+    final currentIdx = context.read<HomeBloc>().state.currentIndex;
+    if (idx != currentIdx) {
+      context.read<HomeBloc>().add(ChangeTabEvent(idx));
     }
   }
 
@@ -82,24 +81,36 @@ class _HomePageState extends State<HomePage> {
     final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
     final bgColor = isDark ? AppColors.darkSurface : AppColors.lightSurface;
 
+    final hideAppBar = loc.startsWith('/projects/') ||
+        loc.startsWith('/project/') ||
+        loc == '/tasks' ||
+        loc == '/timeline' ||
+        loc.startsWith('/assets/');
+
+    final canGoBack = loc != '/projects' &&
+        loc != '/calendar' &&
+        loc != '/notifications' &&
+        loc != '/attendance' &&
+        loc != '/requests';
+
     return PopScope(
-      canPop: loc != '/profile',
+      canPop: !canGoBack,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        if (loc == '/profile') {
-          final currentIdx = context.read<HomeBloc>().state.currentIndex;
-          final prevTab = (currentIdx >= 0 && currentIdx < _tabs.length)
-              ? _tabs[currentIdx].path
-              : '/projects';
-          context.go(prevTab);
+        if (context.canPop()) {
+          context.pop();
+        } else if (loc == '/leave' || loc == '/overtime') {
+          widget.navigationShell.goBranch(4, initialLocation: true);
+        } else {
+          widget.navigationShell.goBranch(0, initialLocation: true);
         }
       },
       child: Scaffold(
-        appBar: _buildAppBar(context, isDark),
-        body: widget.child,
+        appBar: hideAppBar ? null : _buildAppBar(context, isDark, canGoBack),
+        body: widget.navigationShell,
         bottomNavigationBar: BlocBuilder<HomeBloc, HomeState>(
           builder: (context, state) {
-            final currentIdx = state.currentIndex;
+            final activeIdx = widget.navigationShell.currentIndex;
             return Container(
               decoration: BoxDecoration(
                 color: bgColor,
@@ -114,7 +125,7 @@ class _HomePageState extends State<HomePage> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: List.generate(_tabs.length, (i) {
-                      final isSelected = currentIdx == i;
+                      final isSelected = activeIdx == i;
                       final tab = _tabs[i];
                       final color = isSelected
                           ? (isDark
@@ -210,7 +221,8 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context, bool isDark) {
+  PreferredSizeWidget _buildAppBar(
+      BuildContext context, bool isDark, bool canGoBack) {
     final loc = GoRouterState.of(context).matchedLocation;
     String title = 'Juss_TV';
     if (loc.startsWith('/projects') && loc != '/projects') {
@@ -233,21 +245,21 @@ class _HomePageState extends State<HomePage> {
       title = 'Yêu cầu cá nhân';
     } else if (loc.startsWith('/assets')) {
       title = 'Tài sản';
-    } else if (loc == '/profile') {
-      title = 'Hồ sơ cá nhân';
     }
 
     return AppBar(
-      leading: loc == '/profile'
+      leading: canGoBack
           ? IconButton(
               icon: const Icon(Icons.arrow_back_rounded),
               tooltip: 'Quay lại',
               onPressed: () {
-                final currentIdx = context.read<HomeBloc>().state.currentIndex;
-                final prevTab = (currentIdx >= 0 && currentIdx < _tabs.length)
-                    ? _tabs[currentIdx].path
-                    : '/projects';
-                context.go(prevTab);
+                if (context.canPop()) {
+                  context.pop();
+                } else if (loc == '/leave' || loc == '/overtime') {
+                  widget.navigationShell.goBranch(4, initialLocation: true);
+                } else {
+                  widget.navigationShell.goBranch(0, initialLocation: true);
+                }
               },
             )
           : Row(
@@ -256,7 +268,7 @@ class _HomePageState extends State<HomePage> {
                 Image.asset('assets/images/Logo.png', width: 28, height: 28),
               ],
             ),
-      leadingWidth: loc == '/profile' ? 44 : 48,
+      leadingWidth: canGoBack ? 44 : 48,
       title: Text(title),
       actions: [
         Consumer<ThemeProvider>(
@@ -270,28 +282,27 @@ class _HomePageState extends State<HomePage> {
             tooltip: tp.isDark ? 'Chế độ sáng' : 'Chế độ tối',
           ),
         ),
-        if (loc != '/profile')
-          IconButton(
-            onPressed: () => context.go('/profile'),
-            icon: BlocBuilder<AuthBloc, AuthState>(
-              builder: (context, state) {
-                if (state is AuthAuthenticated) {
-                  return AppAvatar(
-                    avatarUrl: state.user.avatar,
-                    name: state.user.displayName.isNotEmpty
-                        ? state.user.displayName
-                        : state.user.username,
-                    radius: 14,
-                    fontSize: 10,
-                  );
-                }
-                return const AppAvatar(
+        IconButton(
+          onPressed: () => context.go('/profile'),
+          icon: BlocBuilder<AuthBloc, AuthState>(
+            builder: (context, state) {
+              if (state is AuthAuthenticated) {
+                return AppAvatar(
+                  avatarUrl: state.user.avatar,
+                  name: state.user.displayName.isNotEmpty
+                      ? state.user.displayName
+                      : state.user.username,
                   radius: 14,
                   fontSize: 10,
                 );
-              },
-            ),
+              }
+              return const AppAvatar(
+                radius: 14,
+                fontSize: 10,
+              );
+            },
           ),
+        ),
         const SizedBox(width: AppTokens.s4),
       ],
       bottom: PreferredSize(

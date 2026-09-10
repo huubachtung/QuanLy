@@ -111,6 +111,99 @@ class WorkflowStepModel {
   }
 }
 
+// ── Workflow Transition Model ─────────────────────────────────
+class WorkflowTransitionModel {
+  final String id;
+  final String from;
+  final String to;
+  final String type; // NEXT, APPROVE, REJECT, CANCEL
+  final String label;
+  final List<String> allowedRoles;
+  final bool requiresApproval;
+  final String conditionNote;
+
+  const WorkflowTransitionModel({
+    this.id = '',
+    required this.from,
+    required this.to,
+    this.type = 'NEXT',
+    this.label = '',
+    this.allowedRoles = const [],
+    this.requiresApproval = false,
+    this.conditionNote = '',
+  });
+
+  factory WorkflowTransitionModel.fromJson(Map<String, dynamic> json) {
+    List<String> roles = [];
+    if (json['allowedRoles'] is List) {
+      roles = (json['allowedRoles'] as List)
+          .map((e) => e.toString().trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+    }
+    return WorkflowTransitionModel(
+      id: json['_id']?.toString() ?? '',
+      from: json['from']?.toString() ?? '',
+      to: json['to']?.toString() ?? '',
+      type: (json['type']?.toString().toUpperCase()) ?? 'NEXT',
+      label: json['label']?.toString() ?? '',
+      allowedRoles: roles,
+      requiresApproval: json['requiresApproval'] == true,
+      conditionNote: json['conditionNote']?.toString() ?? '',
+    );
+  }
+}
+
+// ── Available Transition Model ─────────────────────────────────
+class AvailableTransitionModel {
+  final String toStepId;
+  final String toStepLabel;
+  final String type; // NEXT, APPROVE, REJECT, CANCEL
+  final String label;
+  final String fromStepId;
+  final bool requiresApproval;
+  final List<String> allowedRoles;
+
+  const AvailableTransitionModel({
+    required this.toStepId,
+    this.toStepLabel = '',
+    this.type = 'NEXT',
+    this.label = '',
+    this.fromStepId = '',
+    this.requiresApproval = false,
+    this.allowedRoles = const [],
+  });
+
+  factory AvailableTransitionModel.fromJson(Map<String, dynamic> json) {
+    List<String> roles = [];
+    if (json['allowedRoles'] is List) {
+      roles = (json['allowedRoles'] as List)
+          .map((e) => e.toString().trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+    }
+    return AvailableTransitionModel(
+      toStepId: json['toStepId']?.toString() ??
+          json['to']?.toString() ??
+          json['targetStepId']?.toString() ??
+          json['stepId']?.toString() ??
+          '',
+      toStepLabel: json['toStepLabel']?.toString() ??
+          json['stepLabel']?.toString() ??
+          json['label']?.toString() ??
+          json['targetStep']?['label']?.toString() ??
+          '',
+      type: (json['type']?.toString().toUpperCase()) ?? 'NEXT',
+      label: json['label']?.toString() ?? '',
+      fromStepId: json['fromStepId']?.toString() ??
+          json['from']?.toString() ??
+          '',
+      requiresApproval: json['requiresApproval'] == true,
+      allowedRoles: roles,
+    );
+  }
+}
+
 // ── Task Model ────────────────────────────────────────────────
 class TaskModel {
   final String id;
@@ -128,6 +221,7 @@ class TaskModel {
   final String statusName;
   final String currentStepId;
   final List<WorkflowStepModel> workflowSteps;
+  final List<WorkflowTransitionModel> workflowTransitions;
   final DateTime? startDate;
   final DateTime? deadlineDate;
   final DateTime? completedAt;
@@ -151,6 +245,7 @@ class TaskModel {
     this.statusName = '',
     this.currentStepId = '',
     this.workflowSteps = const [],
+    this.workflowTransitions = const [],
     this.startDate,
     this.deadlineDate,
     this.completedAt,
@@ -175,6 +270,7 @@ class TaskModel {
     String? statusName,
     String? currentStepId,
     List<WorkflowStepModel>? workflowSteps,
+    List<WorkflowTransitionModel>? workflowTransitions,
     DateTime? startDate,
     DateTime? deadlineDate,
     DateTime? completedAt,
@@ -198,6 +294,7 @@ class TaskModel {
       statusName: statusName ?? this.statusName,
       currentStepId: currentStepId ?? this.currentStepId,
       workflowSteps: workflowSteps ?? this.workflowSteps,
+      workflowTransitions: workflowTransitions ?? this.workflowTransitions,
       startDate: startDate ?? this.startDate,
       deadlineDate: deadlineDate ?? this.deadlineDate,
       completedAt: completedAt ?? this.completedAt,
@@ -220,14 +317,24 @@ class TaskModel {
 
     // Parse workflow template steps
     List<WorkflowStepModel> steps = [];
-    if (json['workflow_template'] is Map &&
-        json['workflow_template']['steps'] is List) {
-      final stepsRaw = json['workflow_template']['steps'] as List<dynamic>;
-      steps = stepsRaw
-          .whereType<Map<String, dynamic>>()
-          .map((s) => WorkflowStepModel.fromJson(s))
-          .toList()
-        ..sort((a, b) => a.order.compareTo(b.order));
+    List<WorkflowTransitionModel> transitions = [];
+    if (json['workflow_template'] is Map) {
+      final wfMap = json['workflow_template'] as Map<String, dynamic>;
+      if (wfMap['steps'] is List) {
+        final stepsRaw = wfMap['steps'] as List<dynamic>;
+        steps = stepsRaw
+            .whereType<Map<String, dynamic>>()
+            .map((s) => WorkflowStepModel.fromJson(s))
+            .toList()
+          ..sort((a, b) => a.order.compareTo(b.order));
+      }
+      if (wfMap['transitions'] is List) {
+        final transRaw = wfMap['transitions'] as List<dynamic>;
+        transitions = transRaw
+            .whereType<Map<String, dynamic>>()
+            .map((t) => WorkflowTransitionModel.fromJson(t))
+            .toList();
+      }
     }
 
     // Determine currentStepId
@@ -260,6 +367,7 @@ class TaskModel {
       statusName: statusName.isNotEmpty ? statusName : parsedStatus.label,
       currentStepId: currentStep,
       workflowSteps: steps,
+      workflowTransitions: transitions,
       startDate: json['start_date'] != null ? DateTime.tryParse(json['start_date'].toString())?.toLocal() : null,
       deadlineDate: json['deadline_date'] != null ? DateTime.tryParse(json['deadline_date'].toString())?.toLocal() : null,
       completedAt: json['completedAt'] != null ? DateTime.tryParse(json['completedAt'].toString())?.toLocal() : null,

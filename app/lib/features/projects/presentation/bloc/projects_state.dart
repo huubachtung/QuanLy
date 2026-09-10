@@ -16,12 +16,19 @@ class ProjectsLoaded extends ProjectsState {
   final List<ProjectModel> projects;
   final List<TaskModel> tasks;
   final List<ProjectScheduleModel> schedules;
+  final Map<String, List<AvailableTransitionModel>> availableTransitions;
+  final bool isTransitioning;
 
   const ProjectsLoaded({
     required this.projects,
     required this.tasks,
     required this.schedules,
+    this.availableTransitions = const {},
+    this.isTransitioning = false,
   });
+
+  List<AvailableTransitionModel> transitionsForTask(String taskId) =>
+      availableTransitions[taskId] ?? const [];
 
   List<TaskModel> myTasks([String? userId]) {
     if (userId == null || userId.isEmpty) return tasks;
@@ -49,16 +56,26 @@ class ProjectsLoaded extends ProjectsState {
     List<ProjectModel>? projects,
     List<TaskModel>? tasks,
     List<ProjectScheduleModel>? schedules,
+    Map<String, List<AvailableTransitionModel>>? availableTransitions,
+    bool? isTransitioning,
   }) {
     return ProjectsLoaded(
       projects: projects ?? this.projects,
       tasks: tasks ?? this.tasks,
       schedules: schedules ?? this.schedules,
+      availableTransitions: availableTransitions ?? this.availableTransitions,
+      isTransitioning: isTransitioning ?? this.isTransitioning,
     );
   }
 
   @override
-  List<Object?> get props => [projects, tasks, schedules];
+  List<Object?> get props => [
+        projects,
+        tasks,
+        schedules,
+        availableTransitions,
+        isTransitioning,
+      ];
 }
 
 class ProjectsError extends ProjectsState {

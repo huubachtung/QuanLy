@@ -6,4 +6,6 @@ abstract class ProjectRepository {
   Future<Either<Failure, Map<String, dynamic>>> getProjectsData();
   Future<Either<Failure, void>> updateTaskProgress(
       String taskId, double progress, TaskStatus? status, {String? toStepId});
+  Future<Either<Failure, List<AvailableTransitionModel>>> getAvailableTransitions(String taskId);
+  Future<Either<Failure, void>> performWorkflowTransition(String taskId, String toStepId);
 }

@@ -18,6 +18,8 @@ List<ProjectScheduleModel> _parseSchedules(List<dynamic> jsonList) {
 abstract class ProjectRemoteDataSource {
   Future<Map<String, dynamic>> getProjectsData();
   Future<void> updateTaskProgress(String taskId, double progress, TaskStatus? status, {String? toStepId});
+  Future<List<AvailableTransitionModel>> getAvailableTransitions(String taskId);
+  Future<void> performWorkflowTransition(String taskId, String toStepId);
 }
 
 class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
@@ -77,5 +79,38 @@ class ProjectRemoteDataSourceImpl implements ProjectRemoteDataSource {
         debugPrint('Workflow transition failed: $e');
       }
     }
+  }
+
+  @override
+  Future<List<AvailableTransitionModel>> getAvailableTransitions(String taskId) async {
+    try {
+      final response = await apiClient.dio.get(
+        ApiConstants.availableTransitions('task', taskId),
+      );
+      final rawList = response.data is List
+          ? response.data as List<dynamic>
+          : (response.data is Map && response.data['data'] is List
+              ? response.data['data'] as List<dynamic>
+              : (response.data is Map && response.data['transitions'] is List
+                  ? response.data['transitions'] as List<dynamic>
+                  : []));
+
+      return rawList
+          .whereType<Map<String, dynamic>>()
+          .map((item) => AvailableTransitionModel.fromJson(item))
+          .toList();
+    } catch (e) {
+      debugPrint('Error getting available transitions: $e');
+      return [];
+    }
+  }
+
+  @override
+  Future<void> performWorkflowTransition(String taskId, String toStepId) async {
+    await apiClient.dio.post(ApiConstants.workflowTransition, data: {
+      'scopeType': 'task',
+      'scopeId': taskId,
+      'toStepId': toStepId,
+    });
   }
 }

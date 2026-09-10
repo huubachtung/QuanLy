@@ -1,8 +1,12 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../injection_container.dart';
+import '../core/providers/theme_provider.dart';
+import '../core/utils/app_colors.dart';
+import '../core/utils/app_tokens.dart';
 import '../features/auth/presentation/bloc/auth_bloc.dart';
 import '../features/auth/presentation/bloc/auth_state.dart';
 import '../features/home/presentation/bloc/home_bloc.dart';
@@ -38,54 +42,123 @@ class GoRouterRefreshStream extends ChangeNotifier {
 
 GoRouter buildRouter(AuthBloc authBloc) {
   return GoRouter(
+    initialLocation: '/projects',
     refreshListenable: GoRouterRefreshStream(authBloc.stream),
     redirect: (context, state) {
       final isAuth = authBloc.state is AuthAuthenticated;
       final isLogin = state.matchedLocation == '/login';
       if (!isAuth && !isLogin) return '/login';
-      if (isAuth && isLogin) return '/';
+      if (isAuth && isLogin) return '/projects';
+      if (state.matchedLocation == '/') return '/projects';
       return null;
     },
     routes: [
       GoRoute(path: '/login', builder: (ctx, st) => const LoginPage()),
-      ShellRoute(
-        builder: (ctx, st, child) => BlocProvider(
+      GoRoute(
+        path: '/profile',
+        builder: (ctx, st) {
+          final isDark = Theme.of(ctx).brightness == Brightness.dark;
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Hồ sơ cá nhân'),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                tooltip: 'Quay lại',
+                onPressed: () {
+                  if (ctx.canPop()) {
+                    ctx.pop();
+                  } else {
+                    ctx.go('/projects');
+                  }
+                },
+              ),
+              actions: [
+                Consumer<ThemeProvider>(
+                  builder: (_, tp, __) => IconButton(
+                    onPressed: tp.toggleTheme,
+                    icon: Icon(
+                      tp.isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+                      color: isDark ? AppColors.gold : AppColors.primaryBlue,
+                      size: AppTokens.iconAction,
+                    ),
+                    tooltip: tp.isDark ? 'Chế độ sáng' : 'Chế độ tối',
+                  ),
+                ),
+                const SizedBox(width: AppTokens.s4),
+              ],
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(1),
+                child: Divider(
+                  height: 1,
+                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                ),
+              ),
+            ),
+            body: const ProfilePage(),
+          );
+        },
+      ),
+      StatefulShellRoute.indexedStack(
+        builder: (ctx, st, navigationShell) => BlocProvider(
           create: (_) => sl<HomeBloc>(),
-          child: HomePage(child: child),
+          child: HomePage(navigationShell: navigationShell),
         ),
-        routes: [
-          GoRoute(path: '/', builder: (ctx, st) => const ProjectListPage()),
-          GoRoute(path: '/projects', builder: (ctx, st) => const ProjectListPage()),
-          GoRoute(path: '/tasks', builder: (ctx, st) => const TaskListPage()),
-          GoRoute(path: '/timeline', builder: (ctx, st) => const TimelinePage()),
-          GoRoute(
-            path: '/projects/:id',
-            builder: (ctx, st) => ProjectDetailPage(projectId: st.pathParameters['id']!),
+        branches: [
+          // Branch 0: Dự án
+          StatefulShellBranch(
+            routes: [
+              GoRoute(path: '/projects', builder: (ctx, st) => const ProjectListPage()),
+              GoRoute(path: '/tasks', builder: (ctx, st) => const TaskListPage()),
+              GoRoute(path: '/timeline', builder: (ctx, st) => const TimelinePage()),
+              GoRoute(
+                path: '/projects/:id',
+                builder: (ctx, st) => ProjectDetailPage(projectId: st.pathParameters['id']!),
+              ),
+              GoRoute(
+                path: '/project/:id',
+                builder: (ctx, st) => ProjectDetailPage(projectId: st.pathParameters['id']!),
+              ),
+              GoRoute(
+                path: '/tasks/:id',
+                builder: (ctx, st) => TaskDetailPage(taskId: st.pathParameters['id']!),
+              ),
+              GoRoute(
+                path: '/task/:id',
+                builder: (ctx, st) => TaskDetailPage(taskId: st.pathParameters['id']!),
+              ),
+              GoRoute(path: '/assets', builder: (ctx, st) => const AssetPage()),
+              GoRoute(
+                path: '/assets/:id',
+                builder: (ctx, st) => AssetDetailPage(assetId: st.pathParameters['id']!),
+              ),
+            ],
           ),
-          GoRoute(
-            path: '/project/:id',
-            builder: (ctx, st) => ProjectDetailPage(projectId: st.pathParameters['id']!),
+          // Branch 1: Lịch
+          StatefulShellBranch(
+            routes: [
+              GoRoute(path: '/calendar', builder: (ctx, st) => const ProjectCalendarPage()),
+            ],
           ),
-          GoRoute(
-            path: '/tasks/:id',
-            builder: (ctx, st) => TaskDetailPage(taskId: st.pathParameters['id']!),
+          // Branch 2: Thông báo
+          StatefulShellBranch(
+            routes: [
+              GoRoute(path: '/notifications', builder: (ctx, st) => const NotificationPage()),
+            ],
           ),
-          GoRoute(
-            path: '/task/:id',
-            builder: (ctx, st) => TaskDetailPage(taskId: st.pathParameters['id']!),
+          // Branch 3: Chấm công
+          StatefulShellBranch(
+            routes: [
+              GoRoute(path: '/attendance', builder: (ctx, st) => const AttendancePage()),
+            ],
           ),
-          GoRoute(path: '/calendar', builder: (ctx, st) => const ProjectCalendarPage()),
-          GoRoute(path: '/notifications', builder: (ctx, st) => const NotificationPage()),
-          GoRoute(path: '/attendance', builder: (ctx, st) => const AttendancePage()),
-          GoRoute(path: '/leave', builder: (ctx, st) => const LeaveRequestPage()),
-          GoRoute(path: '/overtime', builder: (ctx, st) => const OvertimePage()),
-          GoRoute(path: '/requests', builder: (ctx, st) => const RequestListPage()),
-          GoRoute(path: '/assets', builder: (ctx, st) => const AssetPage()),
-          GoRoute(
-            path: '/assets/:id',
-            builder: (ctx, st) => AssetDetailPage(assetId: st.pathParameters['id']!),
+          // Branch 4: Yêu cầu
+          StatefulShellBranch(
+            routes: [
+              GoRoute(path: '/requests', builder: (ctx, st) => const RequestListPage()),
+              GoRoute(path: '/leave', builder: (ctx, st) => const LeaveRequestPage()),
+              GoRoute(path: '/overtime', builder: (ctx, st) => const OvertimePage()),
+            ],
           ),
-          GoRoute(path: '/profile', builder: (ctx, st) => const ProfilePage()),
         ],
       ),
     ],

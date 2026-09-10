@@ -21,7 +21,15 @@ class ApiConstants {
   static const String projectSchedules = '/api/project-schedules';
   static const String tasks = '/api/tasks';
   static const String timeline = '/api/timeline';
+
+  // Workflow
+  static const String workflows = '/api/workflows';
+  static String workflowDetail(String id) => '/api/workflow/$id';
   static const String workflowTransition = '/api/workflow/transition';
+  static String availableTransitions(String scopeType, String scopeId) =>
+      '/api/workflow/available-transitions/$scopeType/$scopeId';
+  static String workflowHistories(String scopeType, String scopeId) =>
+      '/api/workflow-histories/$scopeType/$scopeId';
 
   // Attendance
   static const String attendanceReport = '/api/attendance/report';

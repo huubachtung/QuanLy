@@ -16,6 +16,8 @@ import 'features/projects/data/repositories/project_repository_impl.dart';
 import 'features/projects/domain/repositories/project_repository.dart';
 import 'features/projects/domain/usecases/get_projects_data.dart';
 import 'features/projects/domain/usecases/update_task_progress.dart';
+import 'features/projects/domain/usecases/get_available_transitions.dart';
+import 'features/projects/domain/usecases/perform_workflow_transition.dart';
 import 'features/projects/presentation/bloc/projects_bloc.dart';
 import 'features/attendance/data/datasources/attendance_remote_data_source.dart';
 import 'features/attendance/data/repositories/attendance_repository_impl.dart';
@@ -86,11 +88,15 @@ Future<void> init() async {
   sl.registerFactory(() => ProjectsBloc(
         getProjectsData: sl(),
         updateTaskProgress: sl(),
+        getAvailableTransitions: sl(),
+        performWorkflowTransition: sl(),
       ));
 
   // Use cases
   sl.registerLazySingleton(() => GetProjectsDataUseCase(sl()));
   sl.registerLazySingleton(() => UpdateTaskProgressUseCase(sl()));
+  sl.registerLazySingleton(() => GetAvailableTransitionsUseCase(sl()));
+  sl.registerLazySingleton(() => PerformWorkflowTransitionUseCase(sl()));
 
   // Repository
   sl.registerLazySingleton<ProjectRepository>(

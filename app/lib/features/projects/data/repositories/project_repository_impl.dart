@@ -42,4 +42,32 @@ class ProjectRepositoryImpl implements ProjectRepository {
       return const Left(NetworkFailure());
     }
   }
+
+  @override
+  Future<Either<Failure, List<AvailableTransitionModel>>> getAvailableTransitions(String taskId) async {
+    if (await networkInfo.isConnected) {
+      try {
+        final transitions = await remoteDataSource.getAvailableTransitions(taskId);
+        return Right(transitions);
+      } on Exception catch (e) {
+        return Left(Failure.fromException(e));
+      }
+    } else {
+      return const Left(NetworkFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> performWorkflowTransition(String taskId, String toStepId) async {
+    if (await networkInfo.isConnected) {
+      try {
+        await remoteDataSource.performWorkflowTransition(taskId, toStepId);
+        return const Right(null);
+      } on Exception catch (e) {
+        return Left(Failure.fromException(e));
+      }
+    } else {
+      return const Left(NetworkFailure());
+    }
+  }
 }
