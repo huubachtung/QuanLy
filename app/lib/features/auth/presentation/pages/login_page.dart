@@ -220,12 +220,38 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                       ),
                                     ),
                                     const SizedBox(height: AppTokens.s8),
-                                    // Error message
+                                    // Error or session expired message
                                     if (state is AuthError) ...[
                                       Padding(
                                         padding: const EdgeInsets.only(top: AppTokens.s8, bottom: AppTokens.s4),
                                         child: Text(state.message,
                                           style: const TextStyle(color: AppColors.error, fontSize: 12)),
+                                      ),
+                                    ] else if (state is AuthUnauthenticated && state.message != null) ...[
+                                      Container(
+                                        margin: const EdgeInsets.only(top: AppTokens.s8, bottom: AppTokens.s4),
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.warning.withValues(alpha: 0.12),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const Icon(Icons.info_outline_rounded, size: 16, color: AppColors.warning),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                state.message!,
+                                                style: const TextStyle(
+                                                  color: AppColors.warning,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ],
                                     const SizedBox(height: AppTokens.s16),

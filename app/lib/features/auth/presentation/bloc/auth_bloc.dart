@@ -40,7 +40,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final failureOrUser = await autoLoginUseCase(NoParams());
 
     failureOrUser.fold(
-      (failure) => emit(AuthUnauthenticated()),
+      (failure) => emit(const AuthUnauthenticated()),
       (user) => emit(AuthAuthenticated(user)),
     );
   }
@@ -48,12 +48,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   Future<void> _onLogoutRequested(LogoutRequested event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
     await logoutUseCase(NoParams());
-    emit(AuthUnauthenticated());
+    emit(const AuthUnauthenticated());
   }
 
   Future<void> _onTokenExpired(TokenExpired event, Emitter<AuthState> emit) async {
-    emit(const AuthError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'));
-    emit(AuthUnauthenticated());
+    await logoutUseCase(NoParams());
+    emit(const AuthUnauthenticated(
+      message: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+    ));
   }
 
   Future<void> _onUserProfileRefreshRequested(UserProfileRefreshRequested event, Emitter<AuthState> emit) async {
