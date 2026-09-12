@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -8,6 +9,7 @@ import 'package:app/core/utils/app_colors.dart';
 import 'package:app/core/utils/app_tokens.dart';
 import '../../../../core/models/project_model.dart';
 import '../bloc/projects_bloc.dart';
+import '../bloc/projects_event.dart';
 import '../bloc/projects_state.dart';
 import 'package:app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:app/features/auth/presentation/bloc/auth_state.dart';
@@ -58,6 +60,46 @@ class _ProjectCalendarPageState extends State<ProjectCalendarPage> {
     return BlocBuilder<ProjectsBloc, ProjectsState>(
       builder: (context, state) {
         if (state is! ProjectsLoaded) {
+          if (state is ProjectsError) {
+            return RefreshIndicator(
+              onRefresh: () async {
+                final completer = Completer<void>();
+                context.read<ProjectsBloc>().add(LoadProjectsData(completer: completer));
+                return completer.future;
+              },
+              child: LayoutBuilder(
+                builder: (context, constraints) => SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppTokens.s24),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
+                            const SizedBox(height: AppTokens.s12),
+                            Text(
+                              state.message,
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                            const SizedBox(height: AppTokens.s16),
+                            ElevatedButton.icon(
+                              onPressed: () => context.read<ProjectsBloc>().add(const LoadProjectsData()),
+                              icon: const Icon(Icons.refresh_rounded),
+                              label: const Text('Thử lại'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }
           return const Center(child: CircularProgressIndicator());
         }
 
@@ -68,7 +110,13 @@ class _ProjectCalendarPageState extends State<ProjectCalendarPage> {
             ? _projectsForDay(allProjects, _selectedDay!)
             : _projectsForDay(allProjects, _focusedDay);
 
-        return Column(children: [
+        return RefreshIndicator(
+          onRefresh: () async {
+            final completer = Completer<void>();
+            context.read<ProjectsBloc>().add(LoadProjectsData(completer: completer));
+            return completer.future;
+          },
+          child: Column(children: [
           // Filter scope
           Padding(
             padding: const EdgeInsets.fromLTRB(
@@ -283,115 +331,127 @@ class _ProjectCalendarPageState extends State<ProjectCalendarPage> {
             ),
             const SizedBox(height: AppTokens.s8),
             Expanded(
-                child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: AppTokens.s16),
-              itemCount: selectedProjects.length,
-              itemBuilder: (_, i) {
-                final p = selectedProjects[i];
-                final color = _statusColor(p.status);
-                return Container(
-                  margin: const EdgeInsets.only(bottom: AppTokens.s8),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkCard : AppColors.lightCard,
-                    borderRadius: BorderRadius.circular(AppTokens.rCard),
-                    border: Border.all(
-                      color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                    ),
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
+              child: ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: AppTokens.s16),
+                itemCount: selectedProjects.length,
+                itemBuilder: (_, i) {
+                  final p = selectedProjects[i];
+                  final color = _statusColor(p.status);
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: AppTokens.s8),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkCard : AppColors.lightCard,
                       borderRadius: BorderRadius.circular(AppTokens.rCard),
-                      onTap: () => context.push('/projects/${p.id}'),
-                      child: Padding(
-                        padding: const EdgeInsets.all(AppTokens.s16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(children: [
-                              Container(
-                                  width: 4,
-                                  height: 28,
-                                  decoration: BoxDecoration(
-                                      color: color,
-                                      borderRadius: BorderRadius.circular(2))),
-                              const SizedBox(width: AppTokens.s12),
-                              Expanded(
-                                  child: Text(p.name,
-                                      style: Theme.of(context).textTheme.titleSmall,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis)),
-                              const SizedBox(width: AppTokens.s8),
-                              StatusBadge.projectStatus(p.status.label),
-                            ]),
-                            const SizedBox(height: AppTokens.s8),
-                            Row(children: [
-                              Expanded(
-                                  child: LinearPercentIndicator(
-                                lineHeight: 4,
-                                percent: (p.progress / 100).clamp(0.0, 1.0),
-                                progressColor: color,
-                                backgroundColor: color.withValues(alpha: 0.15),
-                                barRadius: const Radius.circular(2),
-                                padding: EdgeInsets.zero,
-                              )),
-                              const SizedBox(width: AppTokens.s8),
-                              Text('${p.progress.toInt()}%',
-                                  style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: color)),
-                            ]),
-                            const SizedBox(height: AppTokens.s8),
-                            Row(children: [
-                              Icon(Icons.date_range_outlined,
-                                  size: 13,
-                                  color:
-                                      Theme.of(context).textTheme.bodySmall?.color),
-                              const SizedBox(width: AppTokens.s4),
-                              Text(
-                                '${DateFormat('dd/MM').format(p.startDate)} - ${DateFormat('dd/MM/yyyy').format(p.endDate)}',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11),
-                              ),
-                              const Spacer(),
-                              if (p.leaderName.isNotEmpty) ...[
-                                Icon(Icons.person_outline_rounded,
+                      border: Border.all(
+                        color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                      ),
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(AppTokens.rCard),
+                        onTap: () => context.push('/projects/${p.id}'),
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppTokens.s16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(children: [
+                                Container(
+                                    width: 4,
+                                    height: 28,
+                                    decoration: BoxDecoration(
+                                        color: color,
+                                        borderRadius: BorderRadius.circular(2))),
+                                const SizedBox(width: AppTokens.s12),
+                                Expanded(
+                                    child: Text(p.name,
+                                        style: Theme.of(context).textTheme.titleSmall,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis)),
+                                const SizedBox(width: AppTokens.s8),
+                                StatusBadge.projectStatus(p.status.label),
+                              ]),
+                              const SizedBox(height: AppTokens.s8),
+                              Row(children: [
+                                Expanded(
+                                    child: LinearPercentIndicator(
+                                  lineHeight: 4,
+                                  percent: (p.progress / 100).clamp(0.0, 1.0),
+                                  progressColor: color,
+                                  backgroundColor: color.withValues(alpha: 0.15),
+                                  barRadius: const Radius.circular(2),
+                                  padding: EdgeInsets.zero,
+                                )),
+                                const SizedBox(width: AppTokens.s8),
+                                Text('${p.progress.toInt()}%',
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: color)),
+                              ]),
+                              const SizedBox(height: AppTokens.s8),
+                              Row(children: [
+                                Icon(Icons.date_range_outlined,
                                     size: 13,
-                                    color: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.color),
+                                    color:
+                                        Theme.of(context).textTheme.bodySmall?.color),
                                 const SizedBox(width: AppTokens.s4),
-                                Text(p.leaderName,
-                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11)),
-                              ],
-                            ]),
-                          ],
+                                Text(
+                                  '${DateFormat('dd/MM').format(p.startDate)} - ${DateFormat('dd/MM/yyyy').format(p.endDate)}',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11),
+                                ),
+                                const Spacer(),
+                                if (p.leaderName.isNotEmpty) ...[
+                                  Icon(Icons.person_outline_rounded,
+                                      size: 13,
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.color),
+                                  const SizedBox(width: AppTokens.s4),
+                                  Text(p.leaderName,
+                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11)),
+                                ],
+                              ]),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                );
-              },
-            )),
+                  );
+                },
+              ),
+            ),
           ] else
             Expanded(
-                child: Center(
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.event_available_rounded,
-                    size: 48,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.2)),
-                const SizedBox(height: 8),
-                Text('Không có dự án nào trong ngày này',
-                    style: Theme.of(context).textTheme.bodySmall),
-              ]),
-            )),
-        ]);
-      },
-    );
+              child: LayoutBuilder(
+                builder: (context, constraints) => SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    child: Center(
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.event_available_rounded,
+                            size: 48,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.2)),
+                        const SizedBox(height: 8),
+                        Text('Không có dự án nào trong ngày này',
+                            style: Theme.of(context).textTheme.bodySmall),
+                      ]),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ]),
+      );
+    },
+  );
   }
 }
 

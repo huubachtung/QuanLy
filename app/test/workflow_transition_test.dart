@@ -247,7 +247,7 @@ void main() {
       ];
 
       // Initial load
-      bloc.add(LoadProjectsData());
+      bloc.add(const LoadProjectsData());
       await expectLater(
         bloc.stream,
         emitsInOrder([
@@ -278,7 +278,7 @@ void main() {
         () async {
       mockRepo.mockTransitions = []; // API returns empty
 
-      bloc.add(LoadProjectsData());
+      bloc.add(const LoadProjectsData());
       await expectLater(
         bloc.stream,
         emitsInOrder([
@@ -304,7 +304,7 @@ void main() {
 
     test('PerformWorkflowTransitionEvent executes transition and reloads',
         () async {
-      bloc.add(LoadProjectsData());
+      bloc.add(const LoadProjectsData());
       await expectLater(
         bloc.stream,
         emitsInOrder([
@@ -355,7 +355,7 @@ void main() {
         performWorkflowTransition: PerformWorkflowTransitionUseCase(mockRepo),
       );
 
-      bloc.add(LoadProjectsData());
+      bloc.add(const LoadProjectsData());
       await tester.pumpWidget(
         BlocProvider<ProjectsBloc>.value(
           value: bloc,

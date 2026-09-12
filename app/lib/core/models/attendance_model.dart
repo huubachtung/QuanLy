@@ -46,7 +46,10 @@ class AttendanceModel {
       overtimeHours: _parseDouble(json['overtimeHours']),
       otStatus: _parseOtStatus(json['otStatus']?.toString()),
       dailyCong: _parseDouble(json['dailyCong']),
-      status: _parseAttendanceStatus(json['status']?.toString()),
+      status: _parseAttendanceStatus(
+        json['status']?.toString(),
+        json['note']?.toString(),
+      ),
       note: json['note']?.toString() ?? '',
       isLeave: _parseBool(json['isLeave']),
     );
@@ -76,8 +79,13 @@ bool _parseBool(dynamic val) {
   return false;
 }
 
-AttendanceStatus _parseAttendanceStatus(String? status) {
-  switch (status?.toLowerCase()) {
+AttendanceStatus _parseAttendanceStatus(String? status, [String? note]) {
+  final s = status?.toLowerCase();
+  final n = note?.toLowerCase() ?? '';
+  if (s == 'holiday' || n.contains('nghỉ lễ') || n.contains('ngày lễ')) {
+    return AttendanceStatus.holiday;
+  }
+  switch (s) {
     case 'done':
       return AttendanceStatus.done;
     case 'late':
@@ -122,6 +130,7 @@ enum AttendanceStatus {
   pending, // Chưa chấm công về
   leave, // Nghỉ phép
   off, // Ngày off
+  holiday, // Nghỉ lễ (Hưởng lương)
 }
 
 extension AttendanceStatusExt on AttendanceStatus {
@@ -143,6 +152,8 @@ extension AttendanceStatusExt on AttendanceStatus {
         return 'Nghỉ phép';
       case AttendanceStatus.off:
         return 'Ngày nghỉ';
+      case AttendanceStatus.holiday:
+        return 'Nghỉ lễ (Hưởng lương)';
     }
   }
 }

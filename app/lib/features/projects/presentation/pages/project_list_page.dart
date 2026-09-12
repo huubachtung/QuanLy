@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -32,7 +33,7 @@ class _ProjectListPageState extends State<ProjectListPage> with SingleTickerProv
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final state = context.read<ProjectsBloc>().state;
       if (state is ProjectsInitial) {
-        context.read<ProjectsBloc>().add(LoadProjectsData());
+        context.read<ProjectsBloc>().add(const LoadProjectsData());
       }
     });
   }
@@ -69,6 +70,47 @@ class _ProjectListPageState extends State<ProjectListPage> with SingleTickerProv
           done = displayProjects.where((p) => p.status == ProjectStatus.finished).length;
         }
 
+        if (state is ProjectsError) {
+          return RefreshIndicator(
+            onRefresh: () async {
+              final completer = Completer<void>();
+              context.read<ProjectsBloc>().add(LoadProjectsData(completer: completer));
+              return completer.future;
+            },
+            child: LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppTokens.s24),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
+                          const SizedBox(height: AppTokens.s12),
+                          Text(
+                            state.message,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          const SizedBox(height: AppTokens.s16),
+                          ElevatedButton.icon(
+                            onPressed: () => context.read<ProjectsBloc>().add(const LoadProjectsData()),
+                            icon: const Icon(Icons.refresh_rounded),
+                            label: const Text('Thử lại'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
         return Column(children: [
           // Navigation shortcuts
           _buildNavShortcuts(context),
@@ -89,34 +131,56 @@ class _ProjectListPageState extends State<ProjectListPage> with SingleTickerProv
             ),
           ),
           Expanded(
-            child: isLoading
-              ? ListView.builder(itemCount: 5,
-                  itemBuilder: (_, __) => const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                    child: CardShimmer()))
-              : AnimatedBuilder(
-                  animation: _tabCtrl,
-                  builder: (_, __) {
-                    final list = _filtered(displayProjects, _tabCtrl.index);
-                    if (list.isEmpty) {
-                      return EmptyState(
-                        icon: Icons.folder_off_rounded,
-                        title: _onlyMyProjects
-                          ? 'Bạn chưa tham gia dự án nào trong mục này'
-                          : 'Không có dự án nào',
+            child: RefreshIndicator(
+              onRefresh: () async {
+                final completer = Completer<void>();
+                context.read<ProjectsBloc>().add(LoadProjectsData(completer: completer));
+                return completer.future;
+              },
+              child: isLoading
+                ? ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    itemCount: 5,
+                    itemBuilder: (_, __) => const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      child: CardShimmer(),
+                    ),
+                  )
+                : AnimatedBuilder(
+                    animation: _tabCtrl,
+                    builder: (_, __) {
+                      final list = _filtered(displayProjects, _tabCtrl.index);
+                      if (list.isEmpty) {
+                        return LayoutBuilder(
+                          builder: (context, constraints) => SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                              child: Center(
+                                child: EmptyState(
+                                  icon: Icons.folder_off_rounded,
+                                  title: _onlyMyProjects
+                                    ? 'Bạn chưa tham gia dự án nào trong mục này'
+                                    : 'Không có dự án nào',
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                      return ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: list.length,
+                        itemBuilder: (_, i) {
+                          final p = list[i];
+                          final tasks = state is ProjectsLoaded ? state.tasksForProject(p.id) : <TaskModel>[];
+                          return _ProjectCard(project: p, tasks: tasks);
+                        },
                       );
-                    }
-                    return ListView.builder(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      itemCount: list.length,
-                      itemBuilder: (_, i) {
-                        final p = list[i];
-                        final tasks = state is ProjectsLoaded ? state.tasksForProject(p.id) : <TaskModel>[];
-                        return _ProjectCard(project: p, tasks: tasks);
-                      },
-                    );
-                  },
-                ),
+                    },
+                  ),
+            ),
           ),
         ]);
       },

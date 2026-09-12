@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:equatable/equatable.dart';
 import '../../../../core/models/project_model.dart';
 
@@ -8,7 +9,14 @@ abstract class ProjectsEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-class LoadProjectsData extends ProjectsEvent {}
+class LoadProjectsData extends ProjectsEvent {
+  final Completer<void>? completer;
+
+  const LoadProjectsData({this.completer});
+
+  @override
+  List<Object?> get props => [completer];
+}
 
 class UpdateTaskProgressEvent extends ProjectsEvent {
   final String taskId;
