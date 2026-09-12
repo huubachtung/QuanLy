@@ -7,9 +7,11 @@
 
 ## 0. Non-Negotiable Development Protocol
 
-### Before changing code
-
-Always provide these two sections first:
+### RULE: Plan-First Gate (STRICT)
+Whenever a task requires code changes:
+1. You MUST generate the "Root Cause Analysis" and a comprehensive "Implementation Plan" containing architectural breakdown (Presentation/Domain/Data), sequence flow, and state definitions.
+2. DO NOT invoke any file-editing tools (e.g., write_file, replace_lines) in the same turn.
+3. Explicitly ask for user confirmation before writing or modifying any code.
 
 #### 1. Root Cause & Context Analysis
 

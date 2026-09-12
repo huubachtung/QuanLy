@@ -19,6 +19,7 @@ import 'features/projects/presentation/bloc/projects_bloc.dart';
 import 'features/attendance/presentation/bloc/attendance_bloc.dart';
 import 'features/requests/presentation/bloc/leave/leave_bloc.dart';
 import 'features/requests/presentation/bloc/overtime/overtime_bloc.dart';
+import 'features/requests/presentation/bloc/attendance_correction/attendance_correction_bloc.dart';
 import 'features/notifications/presentation/bloc/notification_bloc.dart';
 import 'features/notifications/presentation/bloc/notification_event.dart';
 import 'features/notifications/presentation/bloc/notification_state.dart';
@@ -171,6 +172,7 @@ class _JussTVAppState extends State<JussTVApp> {
         BlocProvider(create: (_) => di.sl<AttendanceBloc>()),
         BlocProvider(create: (_) => di.sl<LeaveBloc>()),
         BlocProvider(create: (_) => di.sl<OvertimeBloc>()),
+        BlocProvider(create: (_) => di.sl<AttendanceCorrectionBloc>()),
         BlocProvider(create: (_) => di.sl<NotificationBloc>()),
         BlocProvider(create: (_) => di.sl<AssetBloc>()),
       ],

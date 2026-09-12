@@ -23,6 +23,7 @@ import '../features/attendance/presentation/pages/attendance_page.dart';
 import '../features/requests/presentation/pages/leave_request_page.dart';
 import '../features/requests/presentation/pages/overtime_page.dart';
 import '../features/requests/presentation/pages/request_list_page.dart';
+import '../features/requests/presentation/pages/attendance_correction_page.dart';
 import '../features/assets/presentation/pages/asset_page.dart';
 import '../features/assets/presentation/pages/asset_detail_page.dart';
 import '../features/profile/presentation/pages/profile_page.dart';
@@ -157,6 +158,7 @@ GoRouter buildRouter(AuthBloc authBloc) {
               GoRoute(path: '/requests', builder: (ctx, st) => const RequestListPage()),
               GoRoute(path: '/leave', builder: (ctx, st) => const LeaveRequestPage()),
               GoRoute(path: '/overtime', builder: (ctx, st) => const OvertimePage()),
+              GoRoute(path: '/attendance-correction', builder: (ctx, st) => const AttendanceCorrectionPage()),
             ],
           ),
         ],

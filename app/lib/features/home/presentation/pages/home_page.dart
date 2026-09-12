@@ -99,7 +99,7 @@ class _HomePageState extends State<HomePage> {
         if (didPop) return;
         if (context.canPop()) {
           context.pop();
-        } else if (loc == '/leave' || loc == '/overtime') {
+        } else if (loc == '/leave' || loc == '/overtime' || loc == '/attendance-correction') {
           widget.navigationShell.goBranch(4, initialLocation: true);
         } else {
           widget.navigationShell.goBranch(0, initialLocation: true);
@@ -241,6 +241,8 @@ class _HomePageState extends State<HomePage> {
       title = 'Xin nghỉ phép';
     } else if (loc == '/overtime') {
       title = 'Kê khai tăng ca';
+    } else if (loc == '/attendance-correction') {
+      title = 'Xin chấm công lại';
     } else if (loc == '/requests') {
       title = 'Yêu cầu cá nhân';
     } else if (loc.startsWith('/assets')) {
@@ -255,7 +257,7 @@ class _HomePageState extends State<HomePage> {
               onPressed: () {
                 if (context.canPop()) {
                   context.pop();
-                } else if (loc == '/leave' || loc == '/overtime') {
+                } else if (loc == '/leave' || loc == '/overtime' || loc == '/attendance-correction') {
                   widget.navigationShell.goBranch(4, initialLocation: true);
                 } else {
                   widget.navigationShell.goBranch(0, initialLocation: true);

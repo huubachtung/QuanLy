@@ -34,6 +34,11 @@ import 'features/requests/data/repositories/overtime_repository_impl.dart';
 import 'features/requests/domain/repositories/overtime_repository.dart';
 import 'features/requests/domain/usecases/overtime_usecases.dart';
 import 'features/requests/presentation/bloc/overtime/overtime_bloc.dart';
+import 'features/requests/data/datasources/attendance_correction_remote_data_source.dart';
+import 'features/requests/data/repositories/attendance_correction_repository_impl.dart';
+import 'features/requests/domain/repositories/attendance_correction_repository.dart';
+import 'features/requests/domain/usecases/attendance_correction_usecases.dart';
+import 'features/requests/presentation/bloc/attendance_correction/attendance_correction_bloc.dart';
 import 'features/notifications/data/datasources/notification_remote_data_source.dart';
 import 'features/notifications/data/repositories/notification_repository_impl.dart';
 import 'features/notifications/domain/repositories/notification_repository.dart';
@@ -125,7 +130,7 @@ Future<void> init() async {
     () => AttendanceRemoteDataSourceImpl(apiClient: sl()),
   );
 
-  // --- Features: Requests (Leave & Overtime) ---
+  // --- Features: Requests (Leave & Overtime & Attendance Correction) ---
   // Blocs
   sl.registerFactory(
       () => LeaveBloc(getRequests: sl(), createReq: sl(), cancelReq: sl()));
@@ -135,6 +140,11 @@ Future<void> init() async {
         markNoOt: sl(),
         submitBulk: sl(),
         deleteRecord: sl(),
+      ));
+  sl.registerFactory(() => AttendanceCorrectionBloc(
+        getCorrections: sl(),
+        createCorrection: sl(),
+        deleteCorrection: sl(),
       ));
 
   // Use cases
@@ -146,18 +156,28 @@ Future<void> init() async {
   sl.registerLazySingleton(() => MarkNoOtUseCase(sl()));
   sl.registerLazySingleton(() => SubmitBulkOvertimeUseCase(sl()));
   sl.registerLazySingleton(() => DeleteOvertimeRecordUseCase(sl()));
+  sl.registerLazySingleton(() => GetAttendanceCorrectionsUseCase(sl()));
+  sl.registerLazySingleton(() => CreateAttendanceCorrectionUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteAttendanceCorrectionUseCase(sl()));
 
   // Repositories
   sl.registerLazySingleton<LeaveRepository>(
       () => LeaveRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()));
   sl.registerLazySingleton<OvertimeRepository>(
       () => OvertimeRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()));
+  sl.registerLazySingleton<AttendanceCorrectionRepository>(
+      () => AttendanceCorrectionRepositoryImpl(
+            remoteDataSource: sl(),
+            networkInfo: sl(),
+          ));
 
   // Data sources
   sl.registerLazySingleton<LeaveRemoteDataSource>(
       () => LeaveRemoteDataSourceImpl(apiClient: sl()));
   sl.registerLazySingleton<OvertimeRemoteDataSource>(
       () => OvertimeRemoteDataSourceImpl(apiClient: sl()));
+  sl.registerLazySingleton<AttendanceCorrectionRemoteDataSource>(
+      () => AttendanceCorrectionRemoteDataSourceImpl(apiClient: sl()));
 
   // --- Features: Notifications ---
   // Bloc

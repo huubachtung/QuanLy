@@ -73,13 +73,19 @@ class _RequestListPageState extends State<RequestListPage>
           AppTokens.s16,
           0,
         ),
-        child: Row(children: [
-          _NavLink('Xin nghỉ', Icons.beach_access_outlined,
-              () => context.go('/leave'), isDark),
-          const SizedBox(width: AppTokens.s8),
-          _NavLink('Tăng ca', Icons.timer_outlined,
-              () => context.go('/overtime'), isDark),
-        ]),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(children: [
+            _NavLink('Xin nghỉ', Icons.beach_access_outlined,
+                () => context.go('/leave'), isDark),
+            const SizedBox(width: AppTokens.s8),
+            _NavLink('Tăng ca', Icons.timer_outlined,
+                () => context.go('/overtime'), isDark),
+            const SizedBox(width: AppTokens.s8),
+            _NavLink('Chấm công lại', Icons.edit_calendar_outlined,
+                () => context.go('/attendance-correction'), isDark),
+          ]),
+        ),
       ),
       const SizedBox(height: AppTokens.s8),
       // Type filter chips
@@ -147,8 +153,9 @@ class _RequestListPageState extends State<RequestListPage>
               builder: (_, __) {
                 var list = state.byType(_typeFilter);
                 final statusKey = _statusTabs[_statusTab.index].key;
-                if (statusKey != null)
+                if (statusKey != null) {
                   list = list.where((r) => r.status == statusKey).toList();
+                }
 
                 if (list.isEmpty) {
                   return const EmptyState(

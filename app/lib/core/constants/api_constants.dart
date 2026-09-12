@@ -34,7 +34,7 @@ class ApiConstants {
   // Attendance
   static const String attendanceReport = '/api/attendance/report';
 
-  // Requests (Leave & OT)
+  // Requests (Leave & OT & Attendance Correction)
   static const String leaveRequests = '/api/leave-requests';
   static const String overtimeRequests = '/api/overtime-requests';
   static const String overtimeMonthlySheet =
@@ -42,6 +42,7 @@ class ApiConstants {
   static const String overtimeBulk = '/api/overtime-requests/bulk';
   static String overtimeApprove(String id) =>
       '/api/overtime-requests/$id/approve';
+  static const String attendanceCorrection = '/api/attendance-correction';
 
   // Assets
   static const String assets = '/api/assets';
