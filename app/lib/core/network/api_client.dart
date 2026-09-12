@@ -8,6 +8,8 @@ import 'token_storage.dart';
 class ApiClient {
   late final Dio _dio;
   final TokenStorage _tokenStorage;
+  VoidCallback? onUnauthorized;
+  bool _isNotifyingUnauthorized = false;
 
   ApiClient(this._tokenStorage) {
     _dio = Dio(BaseOptions(
@@ -19,8 +21,8 @@ class ApiClient {
 
     _dio.interceptors.addAll([
       _AuthInterceptor(_tokenStorage),
-      _TokenRefreshInterceptor(_dio, _tokenStorage),
-      _ErrorInterceptor(),
+      _TokenRefreshInterceptor(_dio, _tokenStorage, this),
+      _ErrorInterceptor(this),
       // Bật full debug log để xem đầy đủ request và response trả về từ server
       if (kDebugMode)
         PrettyDioLogger(
@@ -33,6 +35,16 @@ class ApiClient {
           maxWidth: 120,
         ),
     ]);
+  }
+
+  void notifyUnauthorized() {
+    if (_isNotifyingUnauthorized) return;
+    _isNotifyingUnauthorized = true;
+    _tokenStorage.clearAll();
+    onUnauthorized?.call();
+    Future.delayed(const Duration(seconds: 2), () {
+      _isNotifyingUnauthorized = false;
+    });
   }
 
   Dio get dio => _dio;
@@ -61,9 +73,10 @@ class _AuthInterceptor extends Interceptor {
 class _TokenRefreshInterceptor extends Interceptor {
   final Dio _dio;
   final TokenStorage _tokenStorage;
+  final ApiClient _apiClient;
   bool _isRefreshing = false;
 
-  _TokenRefreshInterceptor(this._dio, this._tokenStorage);
+  _TokenRefreshInterceptor(this._dio, this._tokenStorage, this._apiClient);
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
@@ -110,9 +123,12 @@ class _TokenRefreshInterceptor extends Interceptor {
               }
             }
           }
+          // Refresh token null hoặc response không có newAccessToken -> Hết quyền truy cập
+          _apiClient.notifyUnauthorized();
+          return handler.next(err);
         } catch (e) {
           // Xoá token nếu refresh lỗi (sẽ bị logout)
-          await _tokenStorage.clearAll();
+          _apiClient.notifyUnauthorized();
           return handler.next(err);
         } finally {
           _isRefreshing = false;
@@ -124,6 +140,10 @@ class _TokenRefreshInterceptor extends Interceptor {
 }
 
 class _ErrorInterceptor extends Interceptor {
+  final ApiClient _apiClient;
+
+  _ErrorInterceptor(this._apiClient);
+
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     Exception exception;
@@ -138,8 +158,12 @@ class _ErrorInterceptor extends Interceptor {
         break;
       case DioExceptionType.badResponse:
         final statusCode = err.response?.statusCode;
-        if (statusCode == 401) {
+        if (statusCode == 401 || statusCode == 403) {
           exception = UnauthorizedException();
+          if (!err.requestOptions.path.contains(ApiConstants.login) &&
+              !err.requestOptions.path.contains(ApiConstants.refreshToken)) {
+            _apiClient.notifyUnauthorized();
+          }
         } else {
           final message = _extractMessage(err.response?.data) ?? 'Lỗi máy chủ ($statusCode)';
           exception = ServerException(message);

@@ -12,6 +12,7 @@ import 'injection_container.dart' as di;
 import 'core/services/notification_polling_service.dart';
 import 'core/services/notification_background_worker.dart';
 import 'core/models/notification_model.dart';
+import 'core/network/api_client.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_event.dart';
 import 'features/auth/presentation/bloc/auth_state.dart';
@@ -60,6 +61,13 @@ class _JussTVAppState extends State<JussTVApp> {
     // Tạo AuthBloc và Router MỘT LẦN DUY NHẤT - tránh infinite rebuild
     _authBloc = di.sl<AuthBloc>()..add(AutoLoginRequested());
     _router = buildRouter(_authBloc);
+
+    // Khi hết quyền truy cập hoặc hết hạn phiên -> Tự động đưa về màn hình đăng nhập
+    di.sl<ApiClient>().onUnauthorized = () {
+      if (!_authBloc.isClosed) {
+        _authBloc.add(TokenExpired());
+      }
+    };
   }
 
   @override

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -7,6 +8,7 @@ import '../../../../core/models/attendance_model.dart';
 import '../bloc/attendance_bloc.dart';
 import '../bloc/attendance_event.dart';
 import '../bloc/attendance_state.dart';
+import '../helpers/attendance_calendar_helper.dart';
 import 'package:app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:app/features/auth/presentation/bloc/auth_state.dart';
 import '../../../../shared/widgets/month_picker.dart';
@@ -121,30 +123,53 @@ class _AttendancePageState extends State<AttendancePage> {
 
             if (state is AttendanceError)
               Expanded(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppTokens.s24),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline_rounded,
-                            size: 48, color: AppColors.error),
-                        const SizedBox(height: AppTokens.s12),
-                        Text(state.message,
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodyMedium),
-                        const SizedBox(height: AppTokens.s16),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            context.read<AttendanceBloc>().add(
-                                  LoadAttendanceData(
-                                      month: currentMonth, year: currentYear),
-                                );
-                          },
-                          icon: const Icon(Icons.refresh_rounded),
-                          label: const Text('Thử lại'),
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    final completer = Completer<void>();
+                    context.read<AttendanceBloc>().add(
+                          LoadAttendanceData(
+                            month: currentMonth,
+                            year: currentYear,
+                            completer: completer,
+                          ),
+                        );
+                    return completer.future;
+                  },
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: ConstrainedBox(
+                        constraints:
+                            BoxConstraints(minHeight: constraints.maxHeight),
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(AppTokens.s24),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.error_outline_rounded,
+                                    size: 48, color: AppColors.error),
+                                const SizedBox(height: AppTokens.s12),
+                                Text(state.message,
+                                    textAlign: TextAlign.center,
+                                    style: Theme.of(context).textTheme.bodyMedium),
+                                const SizedBox(height: AppTokens.s16),
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    context.read<AttendanceBloc>().add(
+                                          LoadAttendanceData(
+                                              month: currentMonth,
+                                              year: currentYear),
+                                        );
+                                  },
+                                  icon: const Icon(Icons.refresh_rounded),
+                                  label: const Text('Thử lại'),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -159,38 +184,52 @@ class _AttendancePageState extends State<AttendancePage> {
               )
             else
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppTokens.s16,
-                    0,
-                    AppTokens.s16,
-                    AppTokens.s24,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 1. DỮ LIỆU CHUNG THEO THÁNG (Employee Summary Card)
-                      _EmployeeMonthlySummaryCard(
-                        user: user,
-                        summary: summary,
-                        isDark: isDark,
-                        isExpanded: _isExpanded,
-                        onToggleExpand: () =>
-                            setState(() => _isExpanded = !_isExpanded),
-                      ),
-
-                      const SizedBox(height: AppTokens.s16),
-
-                      // 2. BẢNG CHI TIẾT LỊCH SỬ CHẤM CÔNG THEO NGÀY
-                      if (_isExpanded) ...[
-                        _DetailedAttendanceSection(
-                          records: records,
-                          currentMonth: currentMonth,
-                          currentYear: currentYear,
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    final completer = Completer<void>();
+                    context.read<AttendanceBloc>().add(
+                          LoadAttendanceData(
+                            month: currentMonth,
+                            year: currentYear,
+                            completer: completer,
+                          ),
+                        );
+                    return completer.future;
+                  },
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(
+                      AppTokens.s16,
+                      0,
+                      AppTokens.s16,
+                      AppTokens.s24,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 1. DỮ LIỆU CHUNG THEO THÁNG (Employee Summary Card)
+                        _EmployeeMonthlySummaryCard(
+                          user: user,
+                          summary: summary,
                           isDark: isDark,
+                          isExpanded: _isExpanded,
+                          onToggleExpand: () =>
+                              setState(() => _isExpanded = !_isExpanded),
                         ),
+
+                        const SizedBox(height: AppTokens.s16),
+
+                        // 2. BẢNG CHI TIẾT LỊCH SỬ CHẤM CÔNG THEO NGÀY
+                        if (_isExpanded) ...[
+                          _DetailedAttendanceSection(
+                            records: records,
+                            currentMonth: currentMonth,
+                            currentYear: currentYear,
+                            isDark: isDark,
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -501,7 +540,13 @@ class _DetailedAttendanceSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (records.isEmpty) {
+    final fullMonthRecords = AttendanceCalendarHelper.buildFullMonthRecords(
+      apiRecords: records,
+      month: currentMonth,
+      year: currentYear,
+    );
+
+    if (fullMonthRecords.isEmpty) {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(24),
@@ -549,18 +594,23 @@ class _DetailedAttendanceSection extends StatelessWidget {
                 Icon(Icons.calendar_month_rounded,
                     size: 18, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: AppTokens.s8),
-                Text(
-                  'Lịch sử quét vân tay (Tháng $currentMonth/$currentYear)',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
+                Expanded(
+                  child: Text(
+                    'Lịch sử quét vân tay (Tháng $currentMonth/$currentYear)',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: AppTokens.s8),
                 Text(
-                  '${records.length} ngày',
+                  '${records.length}/${fullMonthRecords.length} ngày',
                   style: TextStyle(
                     fontSize: 12,
+                    fontWeight: FontWeight.w500,
                     color: Theme.of(context).textTheme.bodySmall?.color,
                   ),
                 ),
@@ -623,7 +673,7 @@ class _DetailedAttendanceSection extends StatelessWidget {
                         style: TextStyle(
                             fontWeight: FontWeight.w700, fontSize: 12))),
               ],
-              rows: records
+              rows: fullMonthRecords
                   .map((record) => _buildDataRow(context, record, isDark))
                   .toList(),
             ),
@@ -635,8 +685,12 @@ class _DetailedAttendanceSection extends StatelessWidget {
 
   DataRow _buildDataRow(
       BuildContext context, AttendanceModel record, bool isDark) {
-    final date = DateTime.tryParse(record.date) ?? DateTime.now();
+    final date = AttendanceCalendarHelper.parseRecordDate(record.date) ??
+        DateTime(currentYear, currentMonth);
+    final weekday = AttendanceCalendarHelper.formatWeekdayShort(date);
     final dateFormatted = DateFormat('dd/MM/yyyy').format(date);
+    final dateDisplay = '$weekday, $dateFormatted';
+
     final checkIn = record.checkIn != null
         ? DateFormat('HH:mm').format(record.checkIn!)
         : '--:--';
@@ -658,13 +712,22 @@ class _DetailedAttendanceSection extends StatelessWidget {
         : null;
 
     return DataRow(
+      color: WidgetStateProperty.resolveWith<Color?>((states) {
+        if (states.contains(WidgetState.selected)) {
+          return Theme.of(context).colorScheme.primary.withValues(alpha: 0.08);
+        }
+        return null;
+      }),
       onSelectChanged: (_) => _showDetailSheet(context, record),
       cells: [
         // 1. Ngày
         DataCell(
           Text(
-            dateFormatted,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            dateDisplay,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         // 2. Giờ vào
@@ -765,7 +828,21 @@ class _DetailedAttendanceSection extends StatelessWidget {
       return const StatusBadge(
           label: 'Nghỉ phép', color: Color(0xFF8B5CF6), fontSize: 11);
     }
+    if (record.status == AttendanceStatus.holiday ||
+        record.note.contains('Nghỉ lễ') ||
+        record.note.contains('Nghỉ Lễ') ||
+        record.note.contains('Ngày lễ:')) {
+      return const StatusBadge(
+          label: 'Nghỉ lễ (Hưởng lương)',
+          color: Color(0xFFE11D48),
+          fontSize: 11);
+    }
     switch (record.status) {
+      case AttendanceStatus.holiday:
+        return const StatusBadge(
+            label: 'Nghỉ lễ (Hưởng lương)',
+            color: Color(0xFFE11D48),
+            fontSize: 11);
       case AttendanceStatus.done:
         return const StatusBadge(
             label: 'Hoàn thành', color: AppColors.success, fontSize: 11);
@@ -788,8 +865,13 @@ class _DetailedAttendanceSection extends StatelessWidget {
         return const StatusBadge(
             label: 'Nghỉ phép', color: Color(0xFF8B5CF6), fontSize: 11);
       case AttendanceStatus.off:
-        return const StatusBadge(
-            label: 'Ngày nghỉ', color: Colors.grey, fontSize: 11);
+        final date = AttendanceCalendarHelper.parseRecordDate(record.date);
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        final isFuture = date != null && date.isAfter(today);
+        final label = isFuture ? 'Chưa tới' : 'Ngày nghỉ';
+        return StatusBadge(
+            label: label, color: Colors.grey, fontSize: 11);
     }
   }
 
@@ -822,7 +904,8 @@ class _DetailedAttendanceSection extends StatelessWidget {
     final checkOut = record.checkOut != null
         ? DateFormat('HH:mm:ss').format(record.checkOut!)
         : 'Chưa có';
-    final date = DateTime.tryParse(record.date) ?? DateTime.now();
+    final date = AttendanceCalendarHelper.parseRecordDate(record.date) ??
+        DateTime.now();
 
     showModalBottomSheet(
       context: context,

@@ -27,16 +27,38 @@ class ProjectsBloc extends Bloc<ProjectsEvent, ProjectsState> {
   }
 
   Future<void> _onLoadProjectsData(LoadProjectsData event, Emitter<ProjectsState> emit) async {
-    emit(ProjectsLoading());
-    final failureOrData = await getProjectsData(NoParams());
-    failureOrData.fold(
-      (failure) => emit(ProjectsError(failure.message)),
-      (data) => emit(ProjectsLoaded(
-        projects: data['projects'] as List<ProjectModel>,
-        tasks: data['tasks'] as List<TaskModel>,
-        schedules: data['schedules'] as List<ProjectScheduleModel>,
-      )),
-    );
+    final isRefresh = event.completer != null;
+    final currentState = state;
+
+    // Only emit full loading if not pull-refreshing existing loaded data
+    if (!isRefresh && currentState is! ProjectsLoaded) {
+      emit(ProjectsLoading());
+    }
+
+    try {
+      final failureOrData = await getProjectsData(NoParams());
+      failureOrData.fold(
+        (failure) {
+          if (!isRefresh || currentState is! ProjectsLoaded) {
+            emit(ProjectsError(failure.message));
+          }
+        },
+        (data) {
+          final currentTransitions = currentState is ProjectsLoaded
+              ? currentState.availableTransitions
+              : const <String, List<AvailableTransitionModel>>{};
+
+          emit(ProjectsLoaded(
+            projects: data['projects'] as List<ProjectModel>,
+            tasks: data['tasks'] as List<TaskModel>,
+            schedules: data['schedules'] as List<ProjectScheduleModel>,
+            availableTransitions: currentTransitions,
+          ));
+        },
+      );
+    } finally {
+      event.completer?.complete();
+    }
   }
 
   Future<void> _onUpdateTaskProgress(UpdateTaskProgressEvent event, Emitter<ProjectsState> emit) async {
@@ -67,7 +89,7 @@ class ProjectsBloc extends Bloc<ProjectsEvent, ProjectsState> {
       await failureOrSuccess.fold(
         (failure) async {
           emit(ProjectsError(failure.message));
-          add(LoadProjectsData()); // reload
+          add(const LoadProjectsData()); // reload
         },
         (_) async {
           // Re-fetch from server to confirm server data changes
@@ -172,7 +194,7 @@ class ProjectsBloc extends Bloc<ProjectsEvent, ProjectsState> {
       (failure) async {
         emit(currentState.copyWith(isTransitioning: false));
         emit(ProjectsError(failure.message));
-        add(LoadProjectsData());
+        add(const LoadProjectsData());
       },
       (_) async {
         final freshData = await getProjectsData(NoParams());

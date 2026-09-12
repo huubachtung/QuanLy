@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:equatable/equatable.dart';
 
 abstract class AttendanceEvent extends Equatable {
@@ -10,9 +11,14 @@ abstract class AttendanceEvent extends Equatable {
 class LoadAttendanceData extends AttendanceEvent {
   final int month;
   final int year;
+  final Completer<void>? completer;
 
-  const LoadAttendanceData({required this.month, required this.year});
+  const LoadAttendanceData({
+    required this.month,
+    required this.year,
+    this.completer,
+  });
 
   @override
-  List<Object?> get props => [month, year];
+  List<Object?> get props => [month, year, completer];
 }
